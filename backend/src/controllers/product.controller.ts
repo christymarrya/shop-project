@@ -338,14 +338,16 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
       });
     }
 
-    if (!changes.price && !changes.quantity && !changes.stock_status) {
-      logSecurityEvent('product_update', `Product general details updated (ID: ${id}): ${finalName}`, {
-        actor,
-        ipAddress,
-        userAgent,
-        details: { productId: id, name: finalName }
-      });
-    }
+    logSecurityEvent('product_update', `Product updated (ID: ${id}): ${finalName}`, {
+      actor,
+      ipAddress,
+      userAgent,
+      details: {
+        productId: id,
+        name: finalName,
+        changedFields: Object.keys(changes)
+      }
+    });
 
     res.json({
       message: 'Product updated successfully',
@@ -405,5 +407,4 @@ export const deleteProduct = async (req: AuthenticatedRequest, res: Response) =>
     res.status(500).json({ error: 'Failed to delete product' });
   }
 };
-
 

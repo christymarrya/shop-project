@@ -1,0 +1,12 @@
+USE cybersec_lab;
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  username VARCHAR(50) NOT NULL,
+  role VARCHAR(50) NOT NULL,
+  event_type VARCHAR(50) NOT NULL,
+  action TEXT NOT NULL,
+  ip_address VARCHAR(45) NOT NULL,
+  details TEXT
+) ENGINE=InnoDB;

@@ -455,7 +455,10 @@ export default function AdminDashboard() {
               }`}
             >
               <ShieldAlert className="h-4.5 w-4.5" />
-              <span>Security Events</span>
+              <span className="flex flex-col leading-tight">
+                <span>Security Events</span>
+                <span className="text-[10px] font-bold opacity-70">Audit Logs</span>
+              </span>
             </button>
           </aside>
 
@@ -945,7 +948,7 @@ export default function AdminDashboard() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
                     {/* Search */}
                     <div className="lg:col-span-2 relative">
                       <input
@@ -956,6 +959,17 @@ export default function AdminDashboard() {
                         onChange={(e) => setSecuritySearch(e.target.value)}
                       />
                       <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                    </div>
+
+                    {/* Username Filter */}
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Username"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-xs focus:outline-none focus:border-amber-400 font-medium"
+                        value={securityUsername}
+                        onChange={(e) => setSecurityUsername(e.target.value)}
+                      />
                     </div>
 
                     {/* Event Type Filter */}
@@ -1054,6 +1068,7 @@ export default function AdminDashboard() {
                           <th className="p-3">Role</th>
                           <th className="p-3">IP Address</th>
                           <th className="p-3">Action</th>
+                          <th className="p-3">Details</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
@@ -1114,12 +1129,17 @@ export default function AdminDashboard() {
                                 <td className="p-3 text-slate-700 break-words max-w-[280px]" title={log.action}>
                                   {log.action}
                                 </td>
+                                <td className="p-3 text-slate-500 max-w-[260px]">
+                                  <code className="block bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[10px] font-mono truncate" title={log.details || '{}'}>
+                                    {log.details || '{}'}
+                                  </code>
+                                </td>
                               </tr>
                               
                               {/* Expanded log details container */}
                               {isExpanded && (
                                 <tr className="bg-slate-50/30">
-                                  <td colSpan={7} className="p-4 border-l-4 border-amber-400">
+                                  <td colSpan={8} className="p-4 border-l-4 border-amber-400">
                                     <div className="space-y-3">
                                       <div className="flex items-center justify-between">
                                         <span className="text-[10px] uppercase text-slate-400 font-bold flex items-center gap-1">

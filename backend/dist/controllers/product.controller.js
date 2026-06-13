@@ -299,14 +299,16 @@ const updateProduct = async (req, res) => {
                 details: { productId: id, oldQuantity: oldQty, newQuantity: newQty, oldStockStatus: originalProduct.stock_status, newStockStatus: finalStockStatus }
             });
         }
-        if (!changes.price && !changes.quantity && !changes.stock_status) {
-            (0, logger_1.logSecurityEvent)('product_update', `Product general details updated (ID: ${id}): ${finalName}`, {
-                actor,
-                ipAddress,
-                userAgent,
-                details: { productId: id, name: finalName }
-            });
-        }
+        (0, logger_1.logSecurityEvent)('product_update', `Product updated (ID: ${id}): ${finalName}`, {
+            actor,
+            ipAddress,
+            userAgent,
+            details: {
+                productId: id,
+                name: finalName,
+                changedFields: Object.keys(changes)
+            }
+        });
         res.json({
             message: 'Product updated successfully',
             product: {
