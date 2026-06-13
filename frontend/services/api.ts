@@ -39,12 +39,23 @@ export const api = {
   auth: {
     login: (body: any) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
     register: (body: any) => request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
-    logout: () => {
+    logout: async () => {
       if (typeof window !== 'undefined') {
+        const userStr = localStorage.getItem('shopzone_user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        if (user) {
+          try {
+            await request('/auth/logout', {
+              method: 'POST',
+              body: JSON.stringify({ username: user.username, role: user.role })
+            });
+          } catch (err) {
+            console.error('Failed to log logout on server:', err);
+          }
+        }
         localStorage.removeItem('shopzone_token');
         localStorage.removeItem('shopzone_user');
       }
-      return Promise.resolve();
     },
     getCurrentUser: () => {
       if (typeof window !== 'undefined') {
@@ -113,7 +124,19 @@ export const api = {
   admin: {
     usersList: () => request('/admin/users'),
     addUser: (body: any) => request('/admin/users', { method: 'POST', body: JSON.stringify(body) }),
+    updateUserRole: (id: number, role: 'admin' | 'user') => request(`/admin/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
     deleteUser: (id: number) => request(`/admin/users/${id}`, { method: 'DELETE' }),
-    stats: () => request('/admin/stats')
+    stats: () => request('/admin/stats'),
+    securityEvents: (filters: any = {}) => {
+      const params = new URLSearchParams();
+      if (filters.search) params.append('search', filters.search);
+      if (filters.eventType) params.append('eventType', filters.eventType);
+      if (filters.role) params.append('role', filters.role);
+      if (filters.username) params.append('username', filters.username);
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
+      const query = params.toString() ? `?${params.toString()}` : '';
+      return request(`/admin/security-events${query}`);
+    }
   }
 };

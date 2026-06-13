@@ -7,6 +7,7 @@ exports.logSecurityEvent = exports.logger = void 0;
 const winston_1 = __importDefault(require("winston"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const db_1 = require("../config/db");
 // Ensure logs directory exists relative to the project root
 const logsDir = path_1.default.join(process.cwd(), '../logs');
 if (!fs_1.default.existsSync(logsDir)) {
@@ -45,6 +46,7 @@ exports.logger = winston_1.default.createLogger({
  * Crucial for Splunk ingestion.
  */
 const logSecurityEvent = (eventType, message, data) => {
+    // 1. Log via Winston
     exports.logger.warn(message, {
         event_category: 'security_audit',
         event_type: eventType,
@@ -53,6 +55,17 @@ const logSecurityEvent = (eventType, message, data) => {
         ip_address: data.ipAddress || 'unknown',
         user_agent: data.userAgent || 'unknown',
         details: data.details || {}
+    });
+    // 2. Log to the database (fire-and-forget, non-blocking)
+    (0, db_1.dbQuery)('INSERT INTO audit_logs (username, role, event_type, action, ip_address, details) VALUES (?, ?, ?, ?, ?, ?)', [
+        data.actor?.username || 'anonymous',
+        data.actor?.role || 'anonymous',
+        eventType,
+        message,
+        data.ipAddress || 'unknown',
+        JSON.stringify(data.details || {})
+    ]).catch((err) => {
+        exports.logger.error('Failed to save audit log to database:', err);
     });
 };
 exports.logSecurityEvent = logSecurityEvent;

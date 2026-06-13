@@ -182,6 +182,26 @@ LOCK TABLES `wishlist` WRITE;
 INSERT INTO `wishlist` VALUES (1,6,53,'2026-06-12 08:42:08'),(2,9,58,'2026-06-12 09:51:13');
 /*!40000 ALTER TABLE `wishlist` ENABLE KEYS */;
 UNLOCK TABLES;
+--
+-- Table structure for table `audit_logs`
+--
+
+DROP TABLE IF EXISTS `audit_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `audit_logs` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `timestamp` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `username` varchar(50) NOT NULL,
+  `role` varchar(50) NOT NULL,
+  `event_type` varchar(50) NOT NULL,
+  `action` text NOT NULL,
+  `ip_address` varchar(45) NOT NULL,
+  `details` text,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

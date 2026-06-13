@@ -116,6 +116,15 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const logout = (req: Request, res: Response) => {
-  // Client side discards the token. Just log logout event.
+  const { username, role } = req.body;
+  const ipAddress = req.ip || req.socket.remoteAddress;
+  const userAgent = req.headers['user-agent'];
+
+  logSecurityEvent('logout', `User logged out: ${username || 'anonymous'}`, {
+    actor: { id: null, username: username || 'anonymous', role: role || 'anonymous' },
+    ipAddress,
+    userAgent
+  });
+
   res.json({ message: 'Logout successful' });
 };

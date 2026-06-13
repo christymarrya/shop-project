@@ -1,6 +1,7 @@
 import winston from 'winston';
 import path from 'path';
 import fs from 'fs';
+import { dbQuery } from '../config/db';
 
 // Ensure logs directory exists relative to the project root
 const logsDir = path.join(process.cwd(), '../logs');
@@ -65,11 +66,15 @@ export const logSecurityEvent = (
   eventType:
     | 'login_success'
     | 'login_failure'
+    | 'logout'
     | 'user_creation'
     | 'user_deletion'
+    | 'user_role_changed'
     | 'product_creation'
     | 'product_deletion'
     | 'product_update'
+    | 'price_changed'
+    | 'stock_changed'
     | 'checkout'
     | 'admin_action'
     | 'unauthorized_access'
@@ -80,6 +85,7 @@ export const logSecurityEvent = (
   message: string,
   data: SecurityEventData
 ) => {
+  // 1. Log via Winston
   logger.warn(message, {
     event_category: 'security_audit',
     event_type: eventType,
@@ -88,5 +94,20 @@ export const logSecurityEvent = (
     ip_address: data.ipAddress || 'unknown',
     user_agent: data.userAgent || 'unknown',
     details: data.details || {}
+  });
+
+  // 2. Log to the database (fire-and-forget, non-blocking)
+  dbQuery(
+    'INSERT INTO audit_logs (username, role, event_type, action, ip_address, details) VALUES (?, ?, ?, ?, ?, ?)',
+    [
+      data.actor?.username || 'anonymous',
+      data.actor?.role || 'anonymous',
+      eventType,
+      message,
+      data.ipAddress || 'unknown',
+      JSON.stringify(data.details || {})
+    ]
+  ).catch((err) => {
+    logger.error('Failed to save audit log to database:', err);
   });
 };

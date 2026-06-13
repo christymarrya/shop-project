@@ -159,3 +159,104 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
     res.status(500).json({ error: 'Failed to retrieve dashboard metrics' });
   }
 };
+
+// Admin changes a user's role
+export const updateUserRole = async (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+  const { role } = req.body;
+  const actor = req.user!;
+  const ipAddress = req.ip || req.socket.remoteAddress;
+  const userAgent = req.headers['user-agent'];
+
+  const userId = parseInt(id);
+
+  if (userId === actor.id) {
+    return res.status(400).json({ error: 'You cannot change your own admin account role' });
+  }
+
+  if (role !== 'admin' && role !== 'user') {
+    return res.status(400).json({ error: 'Role must be either "admin" or "user"' });
+  }
+
+  try {
+    // Check if user exists
+    const users = await dbQuery('SELECT id, username, role FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const targetUser = users[0];
+    const oldRole = targetUser.role;
+
+    if (oldRole === role) {
+      return res.status(400).json({ error: `User role is already "${role}"` });
+    }
+
+    await dbQuery('UPDATE users SET role = ? WHERE id = ?', [role, userId]);
+
+    // Log the user role change security event
+    logSecurityEvent('user_role_changed', `User role changed for ${targetUser.username} from ${oldRole} to ${role}`, {
+      actor,
+      ipAddress,
+      userAgent,
+      details: { targetUserId: userId, username: targetUser.username, oldRole, newRole: role }
+    });
+
+    res.json({ message: 'User role updated successfully', userId, role });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to update user role' });
+  }
+};
+
+// Admin action: Retrieve all security events / audit logs
+export const getSecurityEvents = async (req: AuthenticatedRequest, res: Response) => {
+  const { search, eventType, role, username, startDate, endDate } = req.query;
+
+  try {
+    let sql = 'SELECT * FROM audit_logs';
+    const params: any[] = [];
+    const clauses: string[] = [];
+
+    if (eventType) {
+      clauses.push('event_type = ?');
+      params.push(eventType);
+    }
+
+    if (role) {
+      clauses.push('role = ?');
+      params.push(role);
+    }
+
+    if (username) {
+      clauses.push('username = ?');
+      params.push(username);
+    }
+
+    if (startDate) {
+      clauses.push('timestamp >= ?');
+      params.push(startDate);
+    }
+
+    if (endDate) {
+      clauses.push('timestamp <= ?');
+      params.push(endDate);
+    }
+
+    if (search) {
+      clauses.push('(username LIKE ? OR action LIKE ? OR ip_address LIKE ? OR event_type LIKE ? OR role LIKE ?)');
+      const searchVal = `%${search}%`;
+      params.push(searchVal, searchVal, searchVal, searchVal, searchVal);
+    }
+
+    if (clauses.length > 0) {
+      sql += ' WHERE ' + clauses.join(' AND ');
+    }
+
+    sql += ' ORDER BY timestamp DESC';
+
+    const logs = await dbQuery(sql, params);
+    res.json(logs);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to retrieve security events' });
+  }
+};

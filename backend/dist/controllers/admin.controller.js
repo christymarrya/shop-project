@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDashboardStats = exports.deleteUser = exports.addUser = exports.getUsers = void 0;
+exports.getSecurityEvents = exports.updateUserRole = exports.getDashboardStats = exports.deleteUser = exports.addUser = exports.getUsers = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const db_1 = require("../config/db");
 const logger_1 = require("../utils/logger");
@@ -139,3 +139,87 @@ const getDashboardStats = async (req, res) => {
     }
 };
 exports.getDashboardStats = getDashboardStats;
+// Admin changes a user's role
+const updateUserRole = async (req, res) => {
+    const { id } = req.params;
+    const { role } = req.body;
+    const actor = req.user;
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    const userId = parseInt(id);
+    if (userId === actor.id) {
+        return res.status(400).json({ error: 'You cannot change your own admin account role' });
+    }
+    if (role !== 'admin' && role !== 'user') {
+        return res.status(400).json({ error: 'Role must be either "admin" or "user"' });
+    }
+    try {
+        // Check if user exists
+        const users = await (0, db_1.dbQuery)('SELECT id, username, role FROM users WHERE id = ?', [userId]);
+        if (users.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        const targetUser = users[0];
+        const oldRole = targetUser.role;
+        if (oldRole === role) {
+            return res.status(400).json({ error: `User role is already "${role}"` });
+        }
+        await (0, db_1.dbQuery)('UPDATE users SET role = ? WHERE id = ?', [role, userId]);
+        // Log the user role change security event
+        (0, logger_1.logSecurityEvent)('user_role_changed', `User role changed for ${targetUser.username} from ${oldRole} to ${role}`, {
+            actor,
+            ipAddress,
+            userAgent,
+            details: { targetUserId: userId, username: targetUser.username, oldRole, newRole: role }
+        });
+        res.json({ message: 'User role updated successfully', userId, role });
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Failed to update user role' });
+    }
+};
+exports.updateUserRole = updateUserRole;
+// Admin action: Retrieve all security events / audit logs
+const getSecurityEvents = async (req, res) => {
+    const { search, eventType, role, username, startDate, endDate } = req.query;
+    try {
+        let sql = 'SELECT * FROM audit_logs';
+        const params = [];
+        const clauses = [];
+        if (eventType) {
+            clauses.push('event_type = ?');
+            params.push(eventType);
+        }
+        if (role) {
+            clauses.push('role = ?');
+            params.push(role);
+        }
+        if (username) {
+            clauses.push('username = ?');
+            params.push(username);
+        }
+        if (startDate) {
+            clauses.push('timestamp >= ?');
+            params.push(startDate);
+        }
+        if (endDate) {
+            clauses.push('timestamp <= ?');
+            params.push(endDate);
+        }
+        if (search) {
+            clauses.push('(username LIKE ? OR action LIKE ? OR ip_address LIKE ? OR event_type LIKE ? OR role LIKE ?)');
+            const searchVal = `%${search}%`;
+            params.push(searchVal, searchVal, searchVal, searchVal, searchVal);
+        }
+        if (clauses.length > 0) {
+            sql += ' WHERE ' + clauses.join(' AND ');
+        }
+        sql += ' ORDER BY timestamp DESC';
+        const logs = await (0, db_1.dbQuery)(sql, params);
+        res.json(logs);
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Failed to retrieve security events' });
+    }
+};
+exports.getSecurityEvents = getSecurityEvents;

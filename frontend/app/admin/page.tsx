@@ -6,14 +6,14 @@ import { useRouter } from 'next/navigation';
 import { 
   ShieldAlert, Users, Package, ShoppingCart, DollarSign, 
   Plus, Edit2, Trash2, ArrowLeft, RefreshCw, X, Sparkles, Check,
-  ShoppingBag
+  ShoppingBag, Download, Search, Filter, Activity, Database, Key, FileText, ChevronDown, ChevronUp
 } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import { api } from '../../services/api';
 import { getProductImageUrl } from '../../services/image';
 import { formatCurrency } from '../../utils/currency';
 
-type TabType = 'overview' | 'products' | 'users' | 'orders';
+type TabType = 'overview' | 'products' | 'users' | 'orders' | 'security';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -57,6 +57,36 @@ export default function AdminDashboard() {
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('');
 
+  // Security log / audit state
+  const [securityLogs, setSecurityLogs] = useState<any[]>([]);
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const [securitySearch, setSecuritySearch] = useState('');
+  const [securityEventType, setSecurityEventType] = useState('');
+  const [securityRole, setSecurityRole] = useState('');
+  const [securityUsername, setSecurityUsername] = useState('');
+  const [securityStartDate, setSecurityStartDate] = useState('');
+  const [securityEndDate, setSecurityEndDate] = useState('');
+  const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
+
+  const fetchSecurityLogs = async () => {
+    setSecurityLoading(true);
+    try {
+      const data = await api.admin.securityEvents({
+        search: securitySearch || undefined,
+        eventType: securityEventType || undefined,
+        role: securityRole || undefined,
+        username: securityUsername || undefined,
+        startDate: securityStartDate || undefined,
+        endDate: securityEndDate || undefined,
+      });
+      setSecurityLogs(data);
+    } catch (err: any) {
+      console.error('Failed to load security logs:', err);
+    } finally {
+      setSecurityLoading(false);
+    }
+  };
+
   // Reload orders when filters change
   useEffect(() => {
     if (currentUser && activeTab === 'orders') {
@@ -65,6 +95,68 @@ export default function AdminDashboard() {
         .catch(err => console.error(err));
     }
   }, [orderSearch, orderStatusFilter, activeTab, currentUser]);
+
+  // Reload security logs when filters change
+  useEffect(() => {
+    if (currentUser && activeTab === 'security') {
+      fetchSecurityLogs();
+    }
+  }, [
+    currentUser,
+    activeTab,
+    securitySearch,
+    securityEventType,
+    securityRole,
+    securityUsername,
+    securityStartDate,
+    securityEndDate,
+  ]);
+
+  const exportToCsv = () => {
+    if (securityLogs.length === 0) {
+      alert('No logs available to export.');
+      return;
+    }
+    const headers = ['ID', 'Timestamp', 'Event Type', 'Username', 'Role', 'IP Address', 'Action', 'Details'];
+    const rows = securityLogs.map(log => [
+      log.id,
+      new Date(log.timestamp).toISOString(),
+      log.event_type,
+      log.username,
+      log.role,
+      log.ip_address,
+      `"${(log.action || '').replace(/"/g, '""')}"`,
+      `"${(log.details || '').replace(/"/g, '""')}"`
+    ]);
+    
+    const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `security_audit_logs_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportToJson = () => {
+    if (securityLogs.length === 0) {
+      alert('No logs available to export.');
+      return;
+    }
+    const jsonContent = JSON.stringify(securityLogs, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `security_audit_logs_${new Date().toISOString().split('T')[0]}.json`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleAdminStatusChange = async (orderGroupId: string, newStatus: string) => {
     try {
@@ -326,7 +418,7 @@ export default function AdminDashboard() {
                 activeTab === 'overview' ? 'bg-amber-50 border border-amber-200 text-amber-700 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-55'
               }`}
             >
-              <ShieldAlert className="h-4.5 w-4.5" />
+              <Activity className="h-4.5 w-4.5" />
               <span>Overview</span>
             </button>
             <button
@@ -355,6 +447,15 @@ export default function AdminDashboard() {
             >
               <ShoppingCart className="h-4.5 w-4.5" />
               <span>View Orders</span>
+            </button>
+            <button
+              onClick={() => { setActiveTab('security'); setError(''); }}
+              className={`w-full text-left px-4 py-2.5 rounded text-sm font-semibold flex items-center gap-2 cursor-pointer transition-all ${
+                activeTab === 'security' ? 'bg-amber-50 border border-amber-200 text-amber-700 font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-55'
+              }`}
+            >
+              <ShieldAlert className="h-4.5 w-4.5" />
+              <span>Security Events</span>
             </button>
           </aside>
 
@@ -581,11 +682,30 @@ export default function AdminDashboard() {
                           <td className="p-3 font-bold text-slate-800">{user.username}</td>
                           <td className="p-3 text-slate-500">{user.email}</td>
                           <td className="p-3">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                              user.role === 'admin' ? 'bg-amber-50 text-amber-700 border border-amber-200/40' : 'bg-slate-100 text-slate-600'
-                            }`}>
-                              {user.role}
-                            </span>
+                            <select
+                              value={user.role}
+                              disabled={user.id === currentUser?.id}
+                              onChange={async (e) => {
+                                const newRole = e.target.value as 'admin' | 'user';
+                                if (confirm(`Are you sure you want to change role of "${user.username}" to "${newRole}"?`)) {
+                                  try {
+                                    await api.admin.updateUserRole(user.id, newRole);
+                                    alert('User role updated successfully');
+                                    loadDashboardData();
+                                  } catch (err: any) {
+                                    alert(err.message || 'Failed to update user role');
+                                  }
+                                }
+                              }}
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border bg-white focus:outline-none focus:border-amber-400 cursor-pointer disabled:bg-slate-100 disabled:cursor-not-allowed ${
+                                user.role === 'admin' 
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200/40 font-bold' 
+                                  : 'bg-slate-50 text-slate-600 border-slate-200'
+                              }`}
+                            >
+                              <option value="user">User</option>
+                              <option value="admin">Admin</option>
+                            </select>
                           </td>
                           <td className="p-3 text-slate-450">
                             {new Date(user.created_at).toLocaleDateString()}
@@ -721,6 +841,316 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
+
+            {/* Security Events / Audit Logs Tab */}
+            {activeTab === 'security' && (
+              <div className="space-y-6">
+                {/* SOC-style dashboard header */}
+                <div className="bg-[#1e293b] text-white p-6 rounded-lg border border-slate-700 shadow-md relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  {/* Subtle decorative glow */}
+                  <div className="absolute right-0 top-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl -z-10"></div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
+                      <span className="text-[10px] tracking-widest uppercase font-mono text-emerald-400 font-bold">SEC-OPS MONITORING NODE ACTIVE</span>
+                    </div>
+                    <h2 className="text-xl font-extrabold flex items-center gap-2 tracking-tight">
+                      <ShieldAlert className="h-5.5 w-5.5 text-amber-500" />
+                      <span>Security Events &amp; Audit Logs</span>
+                    </h2>
+                    <p className="text-slate-400 text-xs mt-1">Real-time database audit record viewer. Monitor user registrations, failed authentication requests, and resource updates.</p>
+                  </div>
+                  <div className="flex gap-2.5">
+                    <button
+                      onClick={exportToCsv}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold rounded flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                    >
+                      <Download className="h-3.5 w-3.5 text-amber-550" />
+                      <span>Export CSV</span>
+                    </button>
+                    <button
+                      onClick={exportToJson}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold rounded flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                    >
+                      <Download className="h-3.5 w-3.5 text-amber-550" />
+                      <span>Export JSON</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* SOC Metrics */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-white border border-slate-200 p-4 rounded-lg shadow-sm">
+                    <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">Audit Records</span>
+                    <div className="flex items-center gap-2">
+                      <Database className="h-5 w-5 text-slate-550" />
+                      <span className="text-xl font-extrabold text-slate-800 font-mono">{securityLogs.length}</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-slate-200 p-4 rounded-lg shadow-sm">
+                    <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">Failed Logins</span>
+                    <div className="flex items-center gap-2">
+                      <Key className="h-5 w-5 text-rose-500" />
+                      <span className="text-xl font-extrabold text-rose-600 font-mono">
+                        {securityLogs.filter(log => log.event_type === 'login_failure' || log.event_type === 'unauthorized_access').length}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-slate-200 p-4 rounded-lg shadow-sm">
+                    <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">Admin Operations</span>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-amber-500" />
+                      <span className="text-xl font-extrabold text-amber-700 font-mono">
+                        {securityLogs.filter(log => log.role === 'admin').length}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-slate-200 p-4 rounded-lg shadow-sm">
+                    <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">Integrity Status</span>
+                    <div className="flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span className="text-sm font-extrabold text-emerald-600 font-mono">SECURE</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search & Advanced Filters */}
+                <div className="bg-white border border-slate-200 p-5 rounded-lg shadow-sm space-y-4">
+                  <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+                    <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                      <Filter className="h-4.5 w-4.5 text-slate-450" />
+                      <span>Security Log Query Filters</span>
+                    </h3>
+                    {/* Clear Filters Button */}
+                    {(securitySearch || securityEventType || securityRole || securityUsername || securityStartDate || securityEndDate) && (
+                      <button
+                        onClick={() => {
+                          setSecuritySearch('');
+                          setSecurityEventType('');
+                          setSecurityRole('');
+                          setSecurityUsername('');
+                          setSecurityStartDate('');
+                          setSecurityEndDate('');
+                        }}
+                        className="text-xs font-bold text-amber-600 hover:text-amber-750 transition-colors flex items-center gap-1"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin-once" />
+                        <span>Reset All Filters</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+                    {/* Search */}
+                    <div className="lg:col-span-2 relative">
+                      <input
+                        type="text"
+                        placeholder="Search action, IP, username..."
+                        className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded text-xs focus:outline-none focus:border-amber-400 font-medium"
+                        value={securitySearch}
+                        onChange={(e) => setSecuritySearch(e.target.value)}
+                      />
+                      <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                    </div>
+
+                    {/* Event Type Filter */}
+                    <div>
+                      <select
+                        className="w-full px-2 py-2 bg-white border border-slate-200 rounded text-xs focus:outline-none focus:border-amber-400 font-semibold text-slate-700"
+                        value={securityEventType}
+                        onChange={(e) => setSecurityEventType(e.target.value)}
+                      >
+                        <option value="">All Event Types</option>
+                        <optgroup label="Authentication">
+                          <option value="login_success">Login Success</option>
+                          <option value="login_failure">Login Failure</option>
+                          <option value="logout">User Logout</option>
+                          <option value="unauthorized_access">Unauthorized Access</option>
+                        </optgroup>
+                        <optgroup label="User Management">
+                          <option value="user_creation">User Created</option>
+                          <option value="user_deletion">User Deleted</option>
+                          <option value="user_role_changed">Role Changed</option>
+                        </optgroup>
+                        <optgroup label="Product Inventory">
+                          <option value="product_creation">Product Created</option>
+                          <option value="product_update">Product Updated</option>
+                          <option value="product_deletion">Product Deleted</option>
+                          <option value="price_changed">Price Changed</option>
+                          <option value="stock_changed">Stock Changed</option>
+                        </optgroup>
+                        <optgroup label="Orders / Checkout">
+                          <option value="order_created">Order Placed</option>
+                          <option value="order_cancelled">Order Cancelled</option>
+                          <option value="order_status_changed">Order Status Changed</option>
+                        </optgroup>
+                      </select>
+                    </div>
+
+                    {/* Role Filter */}
+                    <div>
+                      <select
+                        className="w-full px-2 py-2 bg-white border border-slate-200 rounded text-xs focus:outline-none focus:border-amber-400 font-semibold text-slate-700"
+                        value={securityRole}
+                        onChange={(e) => setSecurityRole(e.target.value)}
+                      >
+                        <option value="">All Roles</option>
+                        <option value="admin">Admin</option>
+                        <option value="user">User</option>
+                        <option value="anonymous">Anonymous</option>
+                      </select>
+                    </div>
+
+                    {/* Start Date */}
+                    <div className="flex items-center gap-1.5 border border-slate-200 rounded bg-slate-50 px-2 py-1">
+                      <span className="text-[9px] uppercase text-slate-400 font-bold block whitespace-nowrap">From:</span>
+                      <input
+                        type="date"
+                        className="bg-transparent text-xs w-full text-slate-705 focus:outline-none font-medium"
+                        value={securityStartDate}
+                        onChange={(e) => setSecurityStartDate(e.target.value)}
+                      />
+                    </div>
+
+                    {/* End Date */}
+                    <div className="flex items-center gap-1.5 border border-slate-200 rounded bg-slate-50 px-2 py-1">
+                      <span className="text-[9px] uppercase text-slate-400 font-bold block whitespace-nowrap">To:</span>
+                      <input
+                        type="date"
+                        className="bg-transparent text-xs w-full text-slate-705 focus:outline-none font-medium"
+                        value={securityEndDate}
+                        onChange={(e) => setSecurityEndDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Logs Table Area */}
+                {securityLoading ? (
+                  <div className="bg-white border border-slate-200 rounded-lg p-12 text-center shadow-sm flex flex-col items-center justify-center gap-3">
+                    <RefreshCw className="h-8 w-8 text-amber-500 animate-spin" />
+                    <span className="text-sm font-semibold text-slate-505">Querying database logs...</span>
+                  </div>
+                ) : securityLogs.length === 0 ? (
+                  <div className="bg-white border border-slate-200 rounded-lg p-12 text-center shadow-sm flex flex-col items-center justify-center gap-2">
+                    <ShieldAlert className="h-10 w-10 text-slate-350" />
+                    <span className="text-sm font-bold text-slate-700">No security events found</span>
+                    <span className="text-xs text-slate-400 max-w-sm">No DB entries matched your current search parameters. Try adjusting filters or reset.</span>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto border border-slate-200 rounded-lg bg-white shadow-sm">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-semibold">
+                        <tr>
+                          <th className="p-3 w-8"></th>
+                          <th className="p-3">Timestamp</th>
+                          <th className="p-3">Event Type</th>
+                          <th className="p-3">Username</th>
+                          <th className="p-3">Role</th>
+                          <th className="p-3">IP Address</th>
+                          <th className="p-3">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {securityLogs.map((log) => {
+                          const isExpanded = expandedLogId === log.id;
+                          
+                          // Color code mapping for event type badges
+                          let badgeStyle = 'bg-slate-100 text-slate-700 border-slate-200';
+                          if (log.event_type === 'login_success' || log.event_type === 'logout') {
+                            badgeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                          } else if (log.event_type === 'login_failure' || log.event_type === 'unauthorized_access') {
+                            badgeStyle = 'bg-rose-50 text-rose-700 border-rose-200/80 font-extrabold animate-pulse';
+                          } else if (log.event_type.startsWith('user_')) {
+                            badgeStyle = 'bg-blue-50 text-blue-700 border-blue-200';
+                          } else if (log.event_type.startsWith('product_') || log.event_type === 'price_changed' || log.event_type === 'stock_changed') {
+                            badgeStyle = 'bg-purple-50 text-purple-700 border-purple-200';
+                          } else if (log.event_type.startsWith('order_') || log.event_type === 'checkout') {
+                            badgeStyle = 'bg-amber-50 text-amber-700 border-amber-200';
+                          }
+
+                          return (
+                            <React.Fragment key={log.id}>
+                              <tr 
+                                className={`hover:bg-slate-50 transition-colors cursor-pointer ${isExpanded ? 'bg-slate-50/70 font-semibold' : ''}`}
+                                onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                              >
+                                <td className="p-3 text-center">
+                                  {isExpanded ? (
+                                    <ChevronUp className="h-4 w-4 text-slate-400" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                                  )}
+                                </td>
+                                <td className="p-3 font-mono text-slate-500 whitespace-nowrap">
+                                  {new Date(log.timestamp).toLocaleString(undefined, {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit'
+                                  })}
+                                </td>
+                                <td className="p-3">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${badgeStyle}`}>
+                                    {log.event_type.replace(/_/g, ' ')}
+                                  </span>
+                                </td>
+                                <td className="p-3 font-bold text-slate-800 font-mono">{log.username}</td>
+                                <td className="p-3">
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                    log.role === 'admin' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
+                                  }`}>
+                                    {log.role}
+                                  </span>
+                                </td>
+                                <td className="p-3 font-mono text-slate-500">{log.ip_address}</td>
+                                <td className="p-3 text-slate-700 break-words max-w-[280px]" title={log.action}>
+                                  {log.action}
+                                </td>
+                              </tr>
+                              
+                              {/* Expanded log details container */}
+                              {isExpanded && (
+                                <tr className="bg-slate-50/30">
+                                  <td colSpan={7} className="p-4 border-l-4 border-amber-400">
+                                    <div className="space-y-3">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[10px] uppercase text-slate-400 font-bold flex items-center gap-1">
+                                          <FileText className="h-3.5 w-3.5" />
+                                          <span>Event Metadata Context</span>
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 font-mono">Log DB Record ID: #{log.id}</span>
+                                      </div>
+                                      <div className="bg-slate-900 text-emerald-400 p-4 rounded-lg font-mono text-xs overflow-x-auto max-h-60 shadow-inner">
+                                        <pre className="whitespace-pre-wrap leading-relaxed">
+                                          {(() => {
+                                            try {
+                                              const parsed = JSON.parse(log.details || '{}');
+                                              return JSON.stringify(parsed, null, 2);
+                                            } catch (e) {
+                                              return log.details || '{}';
+                                            }
+                                          })()}
+                                        </pre>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 

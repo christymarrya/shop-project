@@ -49,6 +49,14 @@ export const checkout = async (req: AuthenticatedRequest, res: Response) => {
       // Deduct stock
       await dbQuery('UPDATE products SET quantity = quantity - ? WHERE id = ?', [item.quantity, item.product_id]);
       
+      // Log stock change
+      logSecurityEvent('stock_changed', `Stock deducted for product (ID: ${item.product_id}): ${item.name} by ${item.quantity} units due to checkout`, {
+        actor: { id: user.id, username: user.username, role: user.role },
+        ipAddress,
+        userAgent,
+        details: { productId: item.product_id, quantityDeducted: item.quantity, newQuantity: item.stock_quantity - item.quantity }
+      });
+
       // Create order record with default order_status='Pending' and payment_status='Paid'
       await dbQuery(
         'INSERT INTO orders (user_id, product_id, quantity, price_at_purchase, order_group_id, order_status, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -252,6 +260,14 @@ export const cancelOrder = async (req: AuthenticatedRequest, res: Response) => {
     // Restore stock for all items
     for (const item of items) {
       await dbQuery('UPDATE products SET quantity = quantity + ? WHERE id = ?', [item.quantity, item.product_id]);
+
+      // Log stock change
+      logSecurityEvent('stock_changed', `Stock restored for product (ID: ${item.product_id}) by ${item.quantity} units due to order cancellation`, {
+        actor: { id: actor.id, username: actor.username, role: actor.role },
+        ipAddress,
+        userAgent,
+        details: { productId: item.product_id, quantityRestored: item.quantity }
+      });
     }
 
     // Update status to Cancelled

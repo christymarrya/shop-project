@@ -281,23 +281,26 @@ const updateProduct = async (req, res) => {
             finalFeatured, finalStatus, id
         ]);
         // Audit logs for stock/price or other alterations
-        if (changes.price || changes.quantity || changes.stock_status) {
-            let logMsg = `Product updated (ID: ${id}): ${finalName}.`;
-            if (changes.price)
-                logMsg += ` Price changed from $${changes.price.old} to $${changes.price.new}.`;
-            if (changes.quantity)
-                logMsg += ` Stock quantity changed from ${changes.quantity.old} to ${changes.quantity.new}.`;
-            if (changes.stock_status)
-                logMsg += ` Stock status changed from "${changes.stock_status.old}" to "${changes.stock_status.new}".`;
-            (0, logger_1.logSecurityEvent)('product_update', logMsg, {
+        if (changes.price) {
+            (0, logger_1.logSecurityEvent)('price_changed', `Price changed for product (ID: ${id}): ${finalName} from ₹${changes.price.old} to ₹${changes.price.new}`, {
                 actor,
                 ipAddress,
                 userAgent,
-                details: { productId: id, changes }
+                details: { productId: id, oldPrice: changes.price.old, newPrice: finalPrice }
             });
         }
-        else {
-            (0, logger_1.logSecurityEvent)('admin_action', `Product general details updated (ID: ${id}): ${finalName}`, {
+        if (changes.quantity || changes.stock_status) {
+            const oldQty = changes.quantity ? changes.quantity.old : originalProduct.quantity;
+            const newQty = finalQuantity;
+            (0, logger_1.logSecurityEvent)('stock_changed', `Stock changed for product (ID: ${id}): ${finalName} from ${oldQty} units to ${newQty} units`, {
+                actor,
+                ipAddress,
+                userAgent,
+                details: { productId: id, oldQuantity: oldQty, newQuantity: newQty, oldStockStatus: originalProduct.stock_status, newStockStatus: finalStockStatus }
+            });
+        }
+        if (!changes.price && !changes.quantity && !changes.stock_status) {
+            (0, logger_1.logSecurityEvent)('product_update', `Product general details updated (ID: ${id}): ${finalName}`, {
                 actor,
                 ipAddress,
                 userAgent,
