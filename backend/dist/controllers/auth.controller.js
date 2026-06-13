@@ -8,41 +8,41 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const db_1 = require("../config/db");
 const logger_1 = require("../utils/logger");
-const JWT_SECRET = process.env.JWT_SECRET || 'cybersec_lab_super_secure_jwt_secret_token_key_2026!';
+const JWT_SECRET = process.env.JWT_SECRET || 'shopzone_super_secure_jwt_secret_token_key_2026!';
 const register = async (req, res) => {
-    const { username, email, password } = req.body;
+    const { username, password } = req.body;
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    if (!username || !email || !password) {
-        return res.status(400).json({ error: 'All fields (username, email, password) are required' });
+    if (!username || !password) {
+        return res.status(400).json({ error: 'All fields (username, password) are required' });
     }
     try {
         // Check if user already exists
-        const existingUsers = await (0, db_1.dbQuery)('SELECT id FROM users WHERE username = ? OR email = ?', [username, email]);
+        const existingUsers = await (0, db_1.dbQuery)('SELECT id FROM users WHERE username = ?', [username]);
         if (existingUsers.length > 0) {
-            return res.status(400).json({ error: 'Username or email already exists' });
+            return res.status(400).json({ error: 'Username already exists' });
         }
         // Hash password
         const hashedPassword = await bcryptjs_1.default.hash(password, 10);
         // Default first user to admin if none exist, or regular user
         const userCount = await (0, db_1.dbQuery)('SELECT COUNT(*) as count FROM users');
         const role = userCount[0].count === 0 ? 'admin' : 'user';
-        // Insert user
-        const result = await (0, db_1.dbQuery)('INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)', [username, hashedPassword, email, role]);
+        // Insert user (email defaults to NULL)
+        const result = await (0, db_1.dbQuery)('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', [username, hashedPassword, role]);
         const userId = result.insertId;
         // Log user creation
         (0, logger_1.logSecurityEvent)('user_creation', `New user registered: ${username}`, {
             actor: { id: userId, username, role },
             ipAddress,
             userAgent,
-            details: { email }
+            details: { email: null }
         });
-        // Generate JWT token
-        const token = jsonwebtoken_1.default.sign({ id: userId, username, email, role }, JWT_SECRET, { expiresIn: '24h' });
+        // Generate JWT token (email is null for new user)
+        const token = jsonwebtoken_1.default.sign({ id: userId, username, email: null, role }, JWT_SECRET, { expiresIn: '24h' });
         res.status(201).json({
             message: 'Registration successful',
             token,
-            user: { id: userId, username, email, role }
+            user: { id: userId, username, email: null, role }
         });
     }
     catch (error) {

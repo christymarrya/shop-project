@@ -7,7 +7,7 @@ exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.
 const db_1 = require("../config/db");
 const logger_1 = require("../utils/logger");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const JWT_SECRET = process.env.JWT_SECRET || 'cybersec_lab_super_secure_jwt_secret_token_key_2026!';
+const JWT_SECRET = process.env.JWT_SECRET || 'shopzone_super_secure_jwt_secret_token_key_2026!';
 // Public storefront: List all products (with search, category, pricing, featured filters and sorting)
 const getProducts = async (req, res) => {
     const { search, category, minPrice, maxPrice, sort, featured } = req.query;

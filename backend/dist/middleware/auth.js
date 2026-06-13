@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireAdmin = exports.authenticateJWT = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const logger_1 = require("../utils/logger");
-const JWT_SECRET = process.env.JWT_SECRET || 'cybersec_lab_super_secure_jwt_secret_token_key_2026!';
+const JWT_SECRET = process.env.JWT_SECRET || 'shopzone_super_secure_jwt_secret_token_key_2026!';
 // Middleware to authenticate any request using JWT
 const authenticateJWT = (req, res, next) => {
     const authHeader = req.headers.authorization;

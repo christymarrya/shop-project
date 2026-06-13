@@ -24,30 +24,31 @@ const addUser = async (req, res) => {
     const actor = req.user;
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    if (!username || !email || !password || !role) {
-        return res.status(400).json({ error: 'Username, email, password, and role are required' });
+    if (!username || !password || !role) {
+        return res.status(400).json({ error: 'Username, password, and role are required' });
     }
     if (role !== 'admin' && role !== 'user') {
         return res.status(400).json({ error: 'Role must be either "admin" or "user"' });
     }
     try {
-        // Check if user already exists
-        const existing = await (0, db_1.dbQuery)('SELECT id FROM users WHERE username = ? OR email = ?', [username, email]);
+        // Check if username already exists
+        const existing = await (0, db_1.dbQuery)('SELECT id FROM users WHERE username = ?', [username]);
         if (existing.length > 0) {
-            return res.status(400).json({ error: 'Username or email already exists' });
+            return res.status(400).json({ error: 'Username already exists' });
         }
         const hashedPassword = await bcryptjs_1.default.hash(password, 10);
-        const result = await (0, db_1.dbQuery)('INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)', [username, hashedPassword, email, role]);
+        const finalEmail = email || null;
+        const result = await (0, db_1.dbQuery)('INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)', [username, hashedPassword, finalEmail, role]);
         const newUserId = result.insertId;
         (0, logger_1.logSecurityEvent)('user_creation', `Admin manually created user: ${username} (Role: ${role})`, {
             actor,
             ipAddress,
             userAgent,
-            details: { newUserId, username, email, role }
+            details: { newUserId, username, email: finalEmail, role }
         });
         res.status(201).json({
             message: 'User created successfully',
-            user: { id: newUserId, username, email, role }
+            user: { id: newUserId, username, email: finalEmail, role }
         });
     }
     catch (error) {
