@@ -4,7 +4,7 @@ import { dbQuery } from '../config/db';
 import { logSecurityEvent } from '../utils/logger';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cybersec_lab_super_secure_jwt_secret_token_key_2026!';
+const JWT_SECRET = process.env.JWT_SECRET || 'shopzone_super_secure_jwt_secret_token_key_2026!';
 
 // Public storefront: List all products (with search, category, pricing, featured filters and sorting)
 export const getProducts = async (req: AuthenticatedRequest, res: Response) => {

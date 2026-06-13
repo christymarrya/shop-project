@@ -21,8 +21,8 @@ export const addUser = async (req: AuthenticatedRequest, res: Response) => {
   const ipAddress = req.ip || req.socket.remoteAddress;
   const userAgent = req.headers['user-agent'];
 
-  if (!username || !email || !password || !role) {
-    return res.status(400).json({ error: 'Username, email, password, and role are required' });
+  if (!username || !password || !role) {
+    return res.status(400).json({ error: 'Username, password, and role are required' });
   }
 
   if (role !== 'admin' && role !== 'user') {
@@ -30,16 +30,18 @@ export const addUser = async (req: AuthenticatedRequest, res: Response) => {
   }
 
   try {
-    // Check if user already exists
-    const existing = await dbQuery('SELECT id FROM users WHERE username = ? OR email = ?', [username, email]);
+    // Check if username already exists
+    const existing = await dbQuery('SELECT id FROM users WHERE username = ?', [username]);
     if (existing.length > 0) {
-      return res.status(400).json({ error: 'Username or email already exists' });
+      return res.status(400).json({ error: 'Username already exists' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const finalEmail = email || null;
+
     const result = await dbQuery(
       'INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)',
-      [username, hashedPassword, email, role]
+      [username, hashedPassword, finalEmail, role]
     );
 
     const newUserId = result.insertId;
@@ -48,12 +50,12 @@ export const addUser = async (req: AuthenticatedRequest, res: Response) => {
       actor,
       ipAddress,
       userAgent,
-      details: { newUserId, username, email, role }
+      details: { newUserId, username, email: finalEmail, role }
     });
 
     res.status(201).json({
       message: 'User created successfully',
-      user: { id: newUserId, username, email, role }
+      user: { id: newUserId, username, email: finalEmail, role }
     });
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to create user' });

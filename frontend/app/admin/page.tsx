@@ -78,7 +78,7 @@ export default function AdminDashboard() {
 
   const [showUserModal, setShowUserModal] = useState(false);
   const [userForm, setUserForm] = useState({
-    username: '', email: '', password: '', role: 'user' as 'admin' | 'user'
+    username: '', password: '', role: 'user' as 'admin' | 'user'
   });
 
   useEffect(() => {
@@ -257,7 +257,7 @@ export default function AdminDashboard() {
       await api.admin.addUser(userForm);
       alert('User added successfully!');
       setShowUserModal(false);
-      setUserForm({ username: '', email: '', password: '', role: 'user' });
+      setUserForm({ username: '', password: '', role: 'user' });
       loadDashboardData();
     } catch (err: any) {
       alert(err.message || 'Error adding user.');
@@ -288,8 +288,8 @@ export default function AdminDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 bg-white p-5 border border-slate-200 rounded-lg shadow-sm">
           <div>
             <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
-              <ShieldAlert className="h-7 w-7 text-amber-500" />
-              <span>Store Administration Panel</span>
+              <ShoppingBag className="h-7 w-7 text-[#febd69]" />
+              <span>ShopZone</span>
             </h1>
             <p className="text-xs text-slate-500 mt-1">Manage e-commerce inventory catalogs, user accounts, and review checkout order logs.</p>
           </div>
@@ -1041,17 +1041,7 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs text-slate-500 uppercase font-semibold mb-1">Email</label>
-                <input
-                  type="email"
-                  required
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded text-slate-805"
-                  placeholder="operator@shopzone.com"
-                  value={userForm.email}
-                  onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                />
-              </div>
+
 
               <div>
                 <label className="block text-xs text-slate-500 uppercase font-semibold mb-1">Password</label>

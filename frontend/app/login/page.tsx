@@ -36,8 +36,8 @@ export default function Login() {
     try {
       const res = await api.auth.login({ username, password });
       
-      localStorage.setItem('cybersec_token', res.token);
-      localStorage.setItem('cybersec_user', JSON.stringify(res.user));
+      localStorage.setItem('shopzone_token', res.token);
+      localStorage.setItem('shopzone_user', JSON.stringify(res.user));
       
       setSuccess('Sign in successful! Redirecting...');
       setTimeout(() => {
@@ -74,8 +74,8 @@ export default function Login() {
               Shop<span className="text-[#febd69]">Zone</span>
             </span>
           </Link>
-          <h2 className="text-2xl font-black text-[#0f172a]">Welcome Back to ShopZone</h2>
-          <p className="text-sm text-slate-500 mt-1">Sign in to continue your shopping journey</p>
+          <h2 className="text-2xl font-black text-[#0f172a]">ShopZone</h2>
+          <p className="text-sm text-slate-500 mt-1">Welcome to ShopZone</p>
         </div>
 
         {error && (

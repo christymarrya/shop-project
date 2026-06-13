@@ -7,7 +7,7 @@ const getHeaders = (isJson = true) => {
     headers['Content-Type'] = 'application/json';
   }
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('cybersec_token');
+    const token = localStorage.getItem('shopzone_token');
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -41,14 +41,14 @@ export const api = {
     register: (body: any) => request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
     logout: () => {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('cybersec_token');
-        localStorage.removeItem('cybersec_user');
+        localStorage.removeItem('shopzone_token');
+        localStorage.removeItem('shopzone_user');
       }
       return Promise.resolve();
     },
     getCurrentUser: () => {
       if (typeof window !== 'undefined') {
-        const userStr = localStorage.getItem('cybersec_user');
+        const userStr = localStorage.getItem('shopzone_user');
         return userStr ? JSON.parse(userStr) : null;
       }
       return null;

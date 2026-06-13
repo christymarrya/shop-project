@@ -48,5 +48,5 @@ app.get('/health', (req, res) => {
 
 // Start listening
 app.listen(port, () => {
-  logger.info(`Cybersec Lab Testing E-Commerce Backend running on port ${port}`);
+  logger.info(`ShopZone E-Commerce Backend running on port ${port}`);
 });

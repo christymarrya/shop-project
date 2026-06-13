@@ -396,7 +396,7 @@ function HomeContent() {
         <div className="max-w-7xl w-full mx-auto px-4 mt-6 animate-fade-in-down">
           <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm text-center">
             <h2 className="text-2xl font-black text-slate-800">
-              👋 Welcome Back, <span className="text-[#F59E0B]">{currentUser.username}</span>
+              👋 Welcome to ShopZone, <span className="text-[#F59E0B]">{currentUser.username}</span>
             </h2>
             <p className="text-sm text-slate-500 font-semibold mt-1.5">
               Ready to discover amazing deals today?

@@ -85,7 +85,7 @@ export default function Navbar({ onSearch, cartCount = 0 }: NavbarProps) {
             <>
               {/* Account info */}
               <div className="flex flex-col text-left">
-                <span className="text-xs text-[#febd69] font-bold">Hello, {user.username}</span>
+                <span className="text-xs text-[#febd69] font-bold">Welcome, {user.username}</span>
               </div>
 
               {/* Admin Dashboard */}
