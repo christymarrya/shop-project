@@ -56,6 +56,10 @@ export interface SecurityEventData {
   ipAddress?: string;
   userAgent?: string;
   details?: Record<string, any>;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  endpoint?: string;
+  requestId?: string;
+  usernameAttempt?: string;
 }
 
 /**
@@ -81,18 +85,26 @@ export const logSecurityEvent = (
     | 'order_created'
     | 'order_status_changed'
     | 'order_cancelled'
-    | 'admin_order_update',
+    | 'admin_order_update'
+    | 'sql_injection_attempt',
   message: string,
   data: SecurityEventData
 ) => {
+  const actor = data.actor || { id: null, username: 'anonymous', role: 'anonymous' };
+
   // 1. Log via Winston
   logger.warn(message, {
     event_category: 'security_audit',
     event_type: eventType,
+    severity: data.severity,
     timestamp: new Date().toISOString(),
-    actor: data.actor || { id: null, username: 'anonymous', role: 'anonymous' },
+    actor,
+    username_attempt: data.usernameAttempt,
     ip_address: data.ipAddress || 'unknown',
+    source_ip: data.ipAddress || 'unknown',
     user_agent: data.userAgent || 'unknown',
+    endpoint: data.endpoint,
+    request_id: data.requestId,
     details: data.details || {}
   });
 
@@ -100,12 +112,20 @@ export const logSecurityEvent = (
   dbQuery(
     'INSERT INTO audit_logs (username, role, event_type, action, ip_address, details) VALUES (?, ?, ?, ?, ?, ?)',
     [
-      data.actor?.username || 'anonymous',
-      data.actor?.role || 'anonymous',
+      data.usernameAttempt || actor.username || 'anonymous',
+      actor.role || 'anonymous',
       eventType,
       message,
       data.ipAddress || 'unknown',
-      JSON.stringify(data.details || {})
+      JSON.stringify({
+        ...(data.details || {}),
+        severity: data.severity,
+        endpoint: data.endpoint,
+        request_id: data.requestId,
+        username_attempt: data.usernameAttempt,
+        source_ip: data.ipAddress || 'unknown',
+        user_agent: data.userAgent || 'unknown'
+      })
     ]
   ).catch((err) => {
     logger.error('Failed to save audit log to database:', err);

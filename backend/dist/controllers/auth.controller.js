@@ -8,6 +8,7 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const db_1 = require("../config/db");
 const logger_1 = require("../utils/logger");
+const sqlInjectionDetector_1 = require("../utils/sqlInjectionDetector");
 const JWT_SECRET = process.env.JWT_SECRET || 'shopzone_super_secure_jwt_secret_token_key_2026!';
 const register = async (req, res) => {
     const { username, password } = req.body;
@@ -54,8 +55,26 @@ const login = async (req, res) => {
     const { username, password } = req.body;
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
+    const requestId = req.requestId;
     if (!username || !password) {
         return res.status(400).json({ error: 'Username and password are required' });
+    }
+    const sqlInjectionMatches = (0, sqlInjectionDetector_1.detectSqlInjection)({ username, password });
+    if (sqlInjectionMatches.length > 0) {
+        (0, logger_1.logSecurityEvent)('sql_injection_attempt', `Suspicious SQL injection pattern detected during login for username attempt: ${username}`, {
+            actor: { id: null, username: 'anonymous', role: 'anonymous' },
+            ipAddress,
+            userAgent,
+            severity: 'high',
+            endpoint: req.originalUrl,
+            requestId,
+            usernameAttempt: String(username),
+            details: {
+                inspectedFields: ['username', 'password'],
+                matches: sqlInjectionMatches
+            }
+        });
+        return res.status(400).json({ error: 'Suspicious input detected.' });
     }
     try {
         // Fetch user

@@ -3979,3 +3979,10 @@
 {"duration_ms":133,"ip":"::1","level":"info","message":"GET /api/cart - 304 (133ms)","method":"GET","status":304,"timestamp":"2026-06-13T12:24:24.547Z","url":"/api/cart","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"}
 {"actor":{"email":"admin@cybersec.lab","id":9,"role":"admin","username":"admin"},"details":{},"event_category":"security_audit","event_type":"admin_action","ip_address":"::1","level":"warn","message":"Admin accessed dashboard metrics","timestamp":"2026-06-13T12:24:24.558Z","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"}
 {"duration_ms":86,"ip":"::1","level":"info","message":"GET /api/admin/stats - 304 (86ms)","method":"GET","status":304,"timestamp":"2026-06-13T12:24:24.559Z","url":"/api/admin/stats","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"}
+{"level":"info","message":"Database pool initialized targeting localhost:3306/cybersec_lab","timestamp":"2026-06-13T12:29:22.230Z"}
+{"level":"info","message":"ShopZone E-Commerce Backend running on port 5000","timestamp":"2026-06-13T12:29:22.275Z"}
+{"level":"info","message":"Database pool initialized targeting localhost:3306/cybersec_lab","timestamp":"2026-06-13T12:29:34.382Z"}
+{"level":"info","message":"ShopZone E-Commerce Backend running on port 5000","timestamp":"2026-06-13T12:29:34.410Z"}
+{"level":"info","message":"Database pool initialized targeting localhost:3306/cybersec_lab","timestamp":"2026-06-13T12:29:43.466Z"}
+{"level":"info","message":"ShopZone E-Commerce Backend running on port 5000","timestamp":"2026-06-13T12:29:43.508Z"}
+{"duration_ms":41,"ip":"::1","level":"info","message":"GET /api/products?sort=newest - 304 (41ms)","method":"GET","request_id":"dc54a5d3-8cf3-4675-a0ff-696c96795557","status":304,"timestamp":"2026-06-13T12:29:55.389Z","url":"/api/products?sort=newest","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"}

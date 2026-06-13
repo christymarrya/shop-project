@@ -46,24 +46,38 @@ exports.logger = winston_1.default.createLogger({
  * Crucial for Splunk ingestion.
  */
 const logSecurityEvent = (eventType, message, data) => {
+    const actor = data.actor || { id: null, username: 'anonymous', role: 'anonymous' };
     // 1. Log via Winston
     exports.logger.warn(message, {
         event_category: 'security_audit',
         event_type: eventType,
+        severity: data.severity,
         timestamp: new Date().toISOString(),
-        actor: data.actor || { id: null, username: 'anonymous', role: 'anonymous' },
+        actor,
+        username_attempt: data.usernameAttempt,
         ip_address: data.ipAddress || 'unknown',
+        source_ip: data.ipAddress || 'unknown',
         user_agent: data.userAgent || 'unknown',
+        endpoint: data.endpoint,
+        request_id: data.requestId,
         details: data.details || {}
     });
     // 2. Log to the database (fire-and-forget, non-blocking)
     (0, db_1.dbQuery)('INSERT INTO audit_logs (username, role, event_type, action, ip_address, details) VALUES (?, ?, ?, ?, ?, ?)', [
-        data.actor?.username || 'anonymous',
-        data.actor?.role || 'anonymous',
+        data.usernameAttempt || actor.username || 'anonymous',
+        actor.role || 'anonymous',
         eventType,
         message,
         data.ipAddress || 'unknown',
-        JSON.stringify(data.details || {})
+        JSON.stringify({
+            ...(data.details || {}),
+            severity: data.severity,
+            endpoint: data.endpoint,
+            request_id: data.requestId,
+            username_attempt: data.usernameAttempt,
+            source_ip: data.ipAddress || 'unknown',
+            user_agent: data.userAgent || 'unknown'
+        })
     ]).catch((err) => {
         exports.logger.error('Failed to save audit log to database:', err);
     });

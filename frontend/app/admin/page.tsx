@@ -894,11 +894,11 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="bg-white border border-slate-200 p-4 rounded-lg shadow-sm">
-                    <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">Failed Logins</span>
+                    <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">High-Risk Alerts</span>
                     <div className="flex items-center gap-2">
                       <Key className="h-5 w-5 text-rose-500" />
                       <span className="text-xl font-extrabold text-rose-600 font-mono">
-                        {securityLogs.filter(log => log.event_type === 'login_failure' || log.event_type === 'unauthorized_access').length}
+                        {securityLogs.filter(log => log.event_type === 'login_failure' || log.event_type === 'unauthorized_access' || log.event_type === 'sql_injection_attempt').length}
                       </span>
                     </div>
                   </div>
@@ -984,6 +984,7 @@ export default function AdminDashboard() {
                           <option value="login_success">Login Success</option>
                           <option value="login_failure">Login Failure</option>
                           <option value="logout">User Logout</option>
+                          <option value="sql_injection_attempt">SQL Injection Attempt</option>
                           <option value="unauthorized_access">Unauthorized Access</option>
                         </optgroup>
                         <optgroup label="User Management">
@@ -1079,6 +1080,8 @@ export default function AdminDashboard() {
                           let badgeStyle = 'bg-slate-100 text-slate-700 border-slate-200';
                           if (log.event_type === 'login_success' || log.event_type === 'logout') {
                             badgeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                          } else if (log.event_type === 'sql_injection_attempt') {
+                            badgeStyle = 'bg-red-100 text-red-800 border-red-300 font-extrabold animate-pulse';
                           } else if (log.event_type === 'login_failure' || log.event_type === 'unauthorized_access') {
                             badgeStyle = 'bg-rose-50 text-rose-700 border-rose-200/80 font-extrabold animate-pulse';
                           } else if (log.event_type.startsWith('user_')) {
