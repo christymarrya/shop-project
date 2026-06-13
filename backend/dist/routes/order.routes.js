@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const order_controller_1 = require("../controllers/order.controller");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.post('/checkout', auth_1.authenticateJWT, order_controller_1.checkout);
+router.get('/history', auth_1.authenticateJWT, order_controller_1.getOrderHistory);
+router.get('/admin/all', auth_1.authenticateJWT, auth_1.requireAdmin, order_controller_1.getAllOrders);
+router.put('/admin/status/:orderGroupId', auth_1.authenticateJWT, auth_1.requireAdmin, order_controller_1.updateOrderStatus);
+router.post('/cancel/:orderGroupId', auth_1.authenticateJWT, order_controller_1.cancelOrder);
+exports.default = router;
