@@ -9,7 +9,7 @@ import {
   ShoppingBag, Download, Search, Filter, Activity, Database, Key, FileText, ChevronDown, ChevronUp
 } from 'lucide-react';
 import Navbar from '../../components/Navbar';
-import { api } from '../../services/api';
+import { api, AdminUser, UserRole } from '../../services/api';
 import { getProductImageUrl } from '../../services/image';
 import { formatCurrency } from '../../utils/currency';
 
@@ -20,7 +20,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [stats, setStats] = useState({ totalSales: 0, totalOrders: 0, totalUsers: 0, totalProducts: 0 });
   const [products, setProducts] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   
@@ -170,8 +170,12 @@ export default function AdminDashboard() {
 
   const [showUserModal, setShowUserModal] = useState(false);
   const [userForm, setUserForm] = useState({
-    username: '', password: '', role: 'user' as 'admin' | 'user'
+    username: '', password: '', role: 'user' as UserRole
   });
+  const [userFormError, setUserFormError] = useState('');
+  const [userFormSuccess, setUserFormSuccess] = useState('');
+  const [userManagementMessage, setUserManagementMessage] = useState('');
+  const [userFormSubmitting, setUserFormSubmitting] = useState(false);
 
   useEffect(() => {
     const user = api.auth.getCurrentUser();
@@ -345,14 +349,26 @@ export default function AdminDashboard() {
   // ----------------------------------------------------
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setUserFormError('');
+    setUserFormSuccess('');
+
+    const normalizedUsername = userForm.username.trim();
+    if (!normalizedUsername || !userForm.password || !userForm.role) {
+      setUserFormError('Username, password, and role are required.');
+      return;
+    }
+
+    setUserFormSubmitting(true);
     try {
-      await api.admin.addUser(userForm);
-      alert('User added successfully!');
+      await api.admin.addUser({ ...userForm, username: normalizedUsername });
+      setUserManagementMessage(`User "${normalizedUsername}" created successfully.`);
       setShowUserModal(false);
       setUserForm({ username: '', password: '', role: 'user' });
       loadDashboardData();
     } catch (err: any) {
-      alert(err.message || 'Error adding user.');
+      setUserFormError(err.message || 'Error adding user.');
+    } finally {
+      setUserFormSubmitting(false);
     }
   };
 
@@ -655,10 +671,14 @@ export default function AdminDashboard() {
             {/* Manage Users Tab */}
             {activeTab === 'users' && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-3 bg-white p-4 rounded-lg border shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3 bg-white p-4 rounded-lg border shadow-sm">
                   <h3 className="font-bold text-slate-800 text-base">User Accounts Management</h3>
                   <button
-                    onClick={() => setShowUserModal(true)}
+                    onClick={() => {
+                      setUserFormError('');
+                      setUserFormSuccess('');
+                      setShowUserModal(true);
+                    }}
                     className="px-3.5 py-1.5 bg-[#febd69] hover:bg-amber-400 text-[#131921] rounded text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-sm"
                   >
                     <Plus className="h-4 w-4" />
@@ -666,13 +686,18 @@ export default function AdminDashboard() {
                   </button>
                 </div>
 
+                {userManagementMessage && (
+                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-xs font-semibold">
+                    {userManagementMessage}
+                  </div>
+                )}
+
                 <div className="overflow-x-auto border border-slate-200 rounded-lg bg-white shadow-sm">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-semibold">
                       <tr>
                         <th className="p-3">ID</th>
                         <th className="p-3">Username</th>
-                        <th className="p-3">Email</th>
                         <th className="p-3">Role</th>
                         <th className="p-3">Created At</th>
                         <th className="p-3 text-center">Actions</th>
@@ -683,13 +708,12 @@ export default function AdminDashboard() {
                         <tr key={user.id} className="hover:bg-slate-55 transition-colors">
                           <td className="p-3 text-slate-400 font-mono">#{user.id}</td>
                           <td className="p-3 font-bold text-slate-800">{user.username}</td>
-                          <td className="p-3 text-slate-500">{user.email}</td>
                           <td className="p-3">
                             <select
                               value={user.role}
                               disabled={user.id === currentUser?.id}
                               onChange={async (e) => {
-                                const newRole = e.target.value as 'admin' | 'user';
+                                const newRole = e.target.value as UserRole;
                                 if (confirm(`Are you sure you want to change role of "${user.username}" to "${newRole}"?`)) {
                                   try {
                                     await api.admin.updateUserRole(user.id, newRole);
@@ -1482,6 +1506,18 @@ export default function AdminDashboard() {
             </div>
 
             <form onSubmit={handleUserSubmit} className="p-6 space-y-4 text-sm">
+              {userFormError && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2 rounded text-xs font-semibold">
+                  {userFormError}
+                </div>
+              )}
+
+              {userFormSuccess && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-2 rounded text-xs font-semibold">
+                  {userFormSuccess}
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs text-slate-500 uppercase font-semibold mb-1">Username</label>
                 <input
@@ -1513,7 +1549,7 @@ export default function AdminDashboard() {
                 <select
                   className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded text-slate-805"
                   value={userForm.role}
-                  onChange={(e) => setUserForm({ ...userForm, role: e.target.value as 'admin' | 'user' })}
+                  onChange={(e) => setUserForm({ ...userForm, role: e.target.value as UserRole })}
                 >
                   <option value="user">User / Customer</option>
                   <option value="admin">Admin / Store Manager</option>
@@ -1530,9 +1566,10 @@ export default function AdminDashboard() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#febd69] hover:bg-amber-400 text-[#131921] font-bold rounded cursor-pointer"
+                  disabled={userFormSubmitting}
+                  className="px-4 py-2 bg-[#febd69] hover:bg-amber-400 disabled:bg-slate-200 disabled:text-slate-400 text-[#131921] font-bold rounded cursor-pointer"
                 >
-                  Add Account
+                  {userFormSubmitting ? 'Creating...' : 'Add Account'}
                 </button>
               </div>
             </form>

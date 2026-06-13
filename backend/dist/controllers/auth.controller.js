@@ -74,7 +74,7 @@ const login = async (req, res) => {
                 matches: sqlInjectionMatches
             }
         });
-        return res.status(400).json({ error: 'Suspicious input detected.' });
+        return res.status(400).json({ error: 'Suspicious input detected' });
     }
     try {
         // Fetch user

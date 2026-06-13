@@ -2,12 +2,12 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import bcrypt from 'bcryptjs';
 import { dbQuery } from '../config/db';
-import { logSecurityEvent } from '../utils/logger';
+import { logSecurityEvent, logger } from '../utils/logger';
 
 // List all users (excluding passwords)
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const users = await dbQuery('SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC');
+    const users = await dbQuery('SELECT id, username, role, created_at FROM users ORDER BY created_at DESC');
     res.json(users);
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to retrieve users' });
@@ -16,12 +16,13 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 
 // Admin adds a user manually
 export const addUser = async (req: AuthenticatedRequest, res: Response) => {
-  const { username, email, password, role } = req.body;
+  const { username, password, role } = req.body;
   const actor = req.user!;
   const ipAddress = req.ip || req.socket.remoteAddress;
   const userAgent = req.headers['user-agent'];
+  const normalizedUsername = typeof username === 'string' ? username.trim() : '';
 
-  if (!username || !password || !role) {
+  if (!normalizedUsername || !password || !role) {
     return res.status(400).json({ error: 'Username, password, and role are required' });
   }
 
@@ -31,34 +32,38 @@ export const addUser = async (req: AuthenticatedRequest, res: Response) => {
 
   try {
     // Check if username already exists
-    const existing = await dbQuery('SELECT id FROM users WHERE username = ?', [username]);
+    const existing = await dbQuery('SELECT id FROM users WHERE username = ?', [normalizedUsername]);
     if (existing.length > 0) {
       return res.status(400).json({ error: 'Username already exists' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const finalEmail = email || null;
 
     const result = await dbQuery(
-      'INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)',
-      [username, hashedPassword, finalEmail, role]
+      'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+      [normalizedUsername, hashedPassword, role]
     );
 
     const newUserId = result.insertId;
 
-    logSecurityEvent('user_creation', `Admin manually created user: ${username} (Role: ${role})`, {
+    logSecurityEvent('user_creation', `Admin manually created user: ${normalizedUsername} (Role: ${role})`, {
       actor,
       ipAddress,
       userAgent,
-      details: { newUserId, username, email: finalEmail, role }
+      details: { newUserId, username: normalizedUsername, role }
     });
 
     res.status(201).json({
       message: 'User created successfully',
-      user: { id: newUserId, username, email: finalEmail, role }
+      user: { id: newUserId, username: normalizedUsername, role }
     });
   } catch (error: any) {
-    res.status(500).json({ error: 'Failed to create user' });
+    logger.error('Failed to manually create user:', error);
+    if (error?.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+
+    res.status(500).json({ error: 'Database error while creating user' });
   }
 };
 
@@ -77,7 +82,7 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
 
   try {
     // Check if user exists
-    const users = await dbQuery('SELECT id, username, email, role FROM users WHERE id = ?', [userId]);
+    const users = await dbQuery('SELECT id, username, role FROM users WHERE id = ?', [userId]);
     if (users.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }

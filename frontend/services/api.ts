@@ -1,5 +1,29 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 
+export type UserRole = 'admin' | 'user';
+
+export interface AdminUser {
+  id: number;
+  username: string;
+  role: UserRole;
+  created_at: string;
+}
+
+export interface CreateAdminUserRequest {
+  username: string;
+  password: string;
+  role: UserRole;
+}
+
+export interface SecurityEventFilters {
+  search?: string;
+  eventType?: string;
+  role?: string;
+  username?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
 // Helper to get headers with JWT token
 const getHeaders = (isJson = true) => {
   const headers: Record<string, string> = {};
@@ -122,12 +146,12 @@ export const api = {
 
   // Admin User Management & Stats
   admin: {
-    usersList: () => request('/admin/users'),
-    addUser: (body: any) => request('/admin/users', { method: 'POST', body: JSON.stringify(body) }),
-    updateUserRole: (id: number, role: 'admin' | 'user') => request(`/admin/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
+    usersList: (): Promise<AdminUser[]> => request('/admin/users'),
+    addUser: (body: CreateAdminUserRequest) => request('/admin/users', { method: 'POST', body: JSON.stringify(body) }),
+    updateUserRole: (id: number, role: UserRole) => request(`/admin/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
     deleteUser: (id: number) => request(`/admin/users/${id}`, { method: 'DELETE' }),
     stats: () => request('/admin/stats'),
-    securityEvents: (filters: any = {}) => {
+    securityEvents: (filters: SecurityEventFilters = {}) => {
       const params = new URLSearchParams();
       if (filters.search) params.append('search', filters.search);
       if (filters.eventType) params.append('eventType', filters.eventType);

@@ -86,7 +86,7 @@ export const login = async (req: Request, res: Response) => {
       }
     });
 
-    return res.status(400).json({ error: 'Suspicious input detected.' });
+    return res.status(400).json({ error: 'Suspicious input detected' });
   }
 
   try {
