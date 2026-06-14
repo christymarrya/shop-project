@@ -13,6 +13,7 @@ const cart_routes_1 = __importDefault(require("./routes/cart.routes"));
 const order_routes_1 = __importDefault(require("./routes/order.routes"));
 const admin_routes_1 = __importDefault(require("./routes/admin.routes"));
 const wishlist_routes_1 = __importDefault(require("./routes/wishlist.routes"));
+const securityLab_routes_1 = __importDefault(require("./routes/securityLab.routes"));
 const requestLogger_1 = require("./middleware/requestLogger");
 const logger_1 = require("./utils/logger");
 // Load environment variables
@@ -38,6 +39,7 @@ app.use('/api/cart', cart_routes_1.default);
 app.use('/api/orders', order_routes_1.default);
 app.use('/api/admin', admin_routes_1.default);
 app.use('/api/wishlist', wishlist_routes_1.default);
+app.use('/api/security-lab', securityLab_routes_1.default);
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ status: 'healthy', timestamp: new Date().toISOString() });

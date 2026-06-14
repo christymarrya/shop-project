@@ -202,6 +202,32 @@ CREATE TABLE `audit_logs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+--
+-- Table structure for table `lab_users`
+--
+
+DROP TABLE IF EXISTS `lab_users`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `lab_users` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `secret_note` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `lab_users`
+--
+
+LOCK TABLES `lab_users` WRITE;
+/*!40000 ALTER TABLE `lab_users` DISABLE KEYS */;
+INSERT INTO `lab_users` VALUES (1,'admin_demo','DemoPass123','FLAG{sqli_demo_success_99182}'),(2,'user_demo','UserPass456','Welcome to the secure user area!');
+/*!40000 ALTER TABLE `lab_users` ENABLE KEYS */;
+UNLOCK TABLES;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

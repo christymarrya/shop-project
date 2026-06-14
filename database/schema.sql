@@ -58,3 +58,17 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   ip_address VARCHAR(45) NOT NULL,
   details TEXT
 ) ENGINE=InnoDB;
+
+-- 6. SQL Injection Demo Lab Users Table
+CREATE TABLE IF NOT EXISTS lab_users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  secret_note VARCHAR(255) NOT NULL
+) ENGINE=InnoDB;
+
+-- Seed lab_users
+INSERT INTO lab_users (username, password, secret_note) VALUES 
+('admin_demo', 'DemoPass123', 'FLAG{sqli_demo_success_99182}'),
+('user_demo', 'UserPass456', 'Welcome to the secure user area!')
+ON DUPLICATE KEY UPDATE id=id;

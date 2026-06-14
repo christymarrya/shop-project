@@ -8,6 +8,7 @@ import cartRoutes from './routes/cart.routes';
 import orderRoutes from './routes/order.routes';
 import adminRoutes from './routes/admin.routes';
 import wishlistRoutes from './routes/wishlist.routes';
+import securityLabRoutes from './routes/securityLab.routes';
 import { requestLogger } from './middleware/requestLogger';
 import { logger } from './utils/logger';
 
@@ -40,6 +41,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/security-lab', securityLabRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
