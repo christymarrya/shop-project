@@ -1,4 +1,12 @@
 {
+  "name": "shop-project",
+  "version": "1.0.0",
+  "description": "E-commerce platform with SQL Injection Lab for security education",
+  "scripts": {
+    "test-payloads": "node test-payloads.js",
+    "test-sqli": "node test-payloads.js",
+    "security-lab-start": "echo 'Ensure backend is running on port 5000 and frontend on port 3000' && npm run test-payloads"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.3"
   }

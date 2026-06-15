@@ -68,6 +68,83 @@ export default function AdminDashboard() {
   const [securityEndDate, setSecurityEndDate] = useState('');
   const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
 
+  const getSeverityForEvent = (eventType: string) => {
+    if (!eventType) return 'Low';
+    if (eventType.includes('sql_injection') || eventType.includes('unauthorized') || eventType.includes('xss') || eventType.includes('login_failure')) {
+      return 'High';
+    }
+    if (eventType.includes('user_deletion') || eventType.includes('role_changed') || eventType.includes('product_deletion')) {
+      return 'Medium';
+    }
+    if (eventType.includes('login_success') || eventType.includes('logout') || eventType.includes('product_update') || eventType.includes('order_')) {
+      return 'Low';
+    }
+    return 'Medium';
+  };
+
+  const getEventTypeStyle = (eventType: string) => {
+    if (eventType.includes('login_success')) return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    if (eventType.includes('login_failure')) return 'bg-rose-100 text-rose-700 border-rose-200';
+    if (eventType.includes('sql_injection')) return 'bg-red-100 text-red-800 border-red-300';
+    if (eventType.includes('xss')) return 'bg-purple-100 text-purple-700 border-purple-200';
+    if (eventType.includes('unauthorized')) return 'bg-orange-100 text-orange-700 border-orange-200';
+    if (eventType.includes('product_') || eventType.includes('price_changed') || eventType.includes('stock_changed')) return 'bg-sky-100 text-sky-700 border-sky-200';
+    if (eventType.includes('user_')) return 'bg-blue-100 text-blue-700 border-blue-200';
+    if (eventType.includes('order_')) return 'bg-amber-100 text-amber-700 border-amber-200';
+    return 'bg-slate-100 text-slate-700 border-slate-200';
+  };
+
+  const securityCounts = {
+    total: securityLogs.length,
+    highRisk: securityLogs.filter(log => ['login_failure', 'unauthorized_access', 'sql_injection_attempt', 'xss_attempt', 'xss_attack'].includes(log.event_type)).length,
+    adminOperations: securityLogs.filter(log => log.role === 'admin').length,
+    sqlInjection: securityLogs.filter(log => log.event_type?.includes('sql_injection')).length,
+    xssAttempts: securityLogs.filter(log => log.event_type?.includes('xss')).length,
+    loginSuccess: securityLogs.filter(log => log.event_type === 'login_success').length,
+    loginFailure: securityLogs.filter(log => log.event_type === 'login_failure').length,
+    recentHighRisk: securityLogs
+      .filter(log => ['login_failure', 'unauthorized_access', 'sql_injection_attempt', 'xss_attempt', 'xss_attack'].includes(log.event_type))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 4),
+  };
+
+  const threatActivityData = [
+    { label: 'SQL Injection', count: securityCounts.sqlInjection, borderColor: 'border-red-500', bgColor: 'bg-red-500' },
+    { label: 'XSS Activity', count: securityCounts.xssAttempts, borderColor: 'border-purple-500', bgColor: 'bg-purple-500' },
+    { label: 'Unauthorized Access', count: securityCounts.highRisk, borderColor: 'border-orange-500', bgColor: 'bg-orange-500' },
+    { label: 'Login Failures', count: securityCounts.loginFailure, borderColor: 'border-rose-500', bgColor: 'bg-rose-500' },
+  ];
+
+  const loginActivityData = [
+    { label: 'Success', value: securityCounts.loginSuccess, color: 'bg-emerald-500' },
+    { label: 'Failure', value: securityCounts.loginFailure, color: 'bg-red-500' },
+  ];
+
+  const maxThreatCount = Math.max(...threatActivityData.map(item => item.count), 1);
+
+  const widthClassFromPercent = (percent: number) => {
+    const normalized = Math.min(100, Math.max(0, Math.round(percent / 10) * 10));
+    const widthMap: Record<number, string> = {
+      0: 'w-[0%]',
+      10: 'w-[10%]',
+      20: 'w-[20%]',
+      30: 'w-[30%]',
+      40: 'w-[40%]',
+      50: 'w-[50%]',
+      60: 'w-[60%]',
+      70: 'w-[70%]',
+      80: 'w-[80%]',
+      90: 'w-[90%]',
+      100: 'w-[100%]',
+    };
+    return widthMap[normalized] || 'w-[100%]';
+  };
+
+  const loginFillClass = (value: number, total: number) => {
+    const percent = total === 0 ? 1 : Math.min(100, Math.max(1, Math.round((value / total) * 100 / 10) * 10));
+    return widthClassFromPercent(percent);
+  };
+
   const fetchSecurityLogs = async () => {
     setSecurityLoading(true);
     try {
@@ -479,7 +556,7 @@ export default function AdminDashboard() {
           </aside>
 
           {/* Main Content Area */}
-          <div className="flex-grow">
+          <div className="flex-grow min-w-0">
             
             {/* Overview / Stats Tab */}
             {activeTab === 'overview' && (
@@ -710,6 +787,7 @@ export default function AdminDashboard() {
                           <td className="p-3 font-bold text-slate-800">{user.username}</td>
                           <td className="p-3">
                             <select
+                              aria-label="Change user role"
                               value={user.role}
                               disabled={user.id === currentUser?.id}
                               onChange={async (e) => {
@@ -772,6 +850,7 @@ export default function AdminDashboard() {
                       onChange={(e) => setOrderSearch(e.target.value)}
                     />
                     <select
+                      aria-label="Filter orders by status"
                       className="border border-slate-200 bg-white text-slate-700 text-xs p-2 rounded focus:outline-none focus:border-amber-400 font-semibold"
                       value={orderStatusFilter}
                       onChange={(e) => setOrderStatusFilter(e.target.value)}
@@ -844,6 +923,7 @@ export default function AdminDashboard() {
                           </td>
                           <td className="p-3 text-center">
                             <select
+                              aria-label="Update order status"
                               className={`border rounded p-1 font-bold text-[10px] focus:outline-none focus:border-amber-400 ${
                                 ord.order_status === 'Delivered' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' :
                                 ord.order_status === 'Cancelled' ? 'bg-rose-50 border-rose-300 text-rose-700' :
@@ -875,329 +955,272 @@ export default function AdminDashboard() {
             {activeTab === 'security' && (
               <div className="space-y-6">
                 {/* SOC-style dashboard header */}
-                <div className="bg-[#1e293b] text-white p-6 rounded-lg border border-slate-700 shadow-md relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  {/* Subtle decorative glow */}
-                  <div className="absolute right-0 top-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl -z-10"></div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
-                      <span className="text-[10px] tracking-widest uppercase font-mono text-emerald-400 font-bold">SEC-OPS MONITORING NODE ACTIVE</span>
+                <div className="bg-[#0f172a] text-white p-5 rounded-3xl border border-slate-700 shadow-[0_28px_60px_-38px_rgba(15,23,42,0.9)] overflow-hidden relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-900/20 via-transparent to-sky-500/10 pointer-events-none"></div>
+                  <div className="relative grid grid-cols-1 xl:grid-cols-[1.3fr_0.9fr] gap-4 items-start">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.3em] text-sky-300 font-semibold">
+                        <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                        SOC / SIEM ANALYTICS
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-3">
+                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-slate-800 text-sky-300 shadow-inner">
+                            <ShieldAlert className="h-5 w-5" />
+                          </span>
+                          <div>
+                            <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight">Security Events & Audit Logs</h1>
+                            <p className="text-slate-300 text-sm leading-6 max-w-2xl">
+                              Real-time monitoring of authentication, administrative actions, and threat events.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <h2 className="text-xl font-extrabold flex items-center gap-2 tracking-tight">
-                      <ShieldAlert className="h-5.5 w-5.5 text-amber-500" />
-                      <span>Security Events &amp; Audit Logs</span>
-                    </h2>
-                    <p className="text-slate-400 text-xs mt-1">Real-time database audit record viewer. Monitor user registrations, failed authentication requests, and resource updates.</p>
-                  </div>
-                  <div className="flex gap-2.5">
-                    <button
-                      onClick={exportToCsv}
-                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold rounded flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
-                    >
-                      <Download className="h-3.5 w-3.5 text-amber-550" />
-                      <span>Export CSV</span>
-                    </button>
-                    <button
-                      onClick={exportToJson}
-                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold rounded flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
-                    >
-                      <Download className="h-3.5 w-3.5 text-amber-550" />
-                      <span>Export JSON</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* SOC Metrics */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-white border border-slate-200 p-4 rounded-lg shadow-sm">
-                    <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">Audit Records</span>
-                    <div className="flex items-center gap-2">
-                      <Database className="h-5 w-5 text-slate-550" />
-                      <span className="text-xl font-extrabold text-slate-800 font-mono">{securityLogs.length}</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-white border border-slate-200 p-4 rounded-lg shadow-sm">
-                    <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">High-Risk Alerts</span>
-                    <div className="flex items-center gap-2">
-                      <Key className="h-5 w-5 text-rose-500" />
-                      <span className="text-xl font-extrabold text-rose-600 font-mono">
-                        {securityLogs.filter(log => log.event_type === 'login_failure' || log.event_type === 'unauthorized_access' || log.event_type === 'sql_injection_attempt').length}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="bg-white border border-slate-200 p-4 rounded-lg shadow-sm">
-                    <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">Admin Operations</span>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-5 w-5 text-amber-500" />
-                      <span className="text-xl font-extrabold text-amber-700 font-mono">
-                        {securityLogs.filter(log => log.role === 'admin').length}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="bg-white border border-slate-200 p-4 rounded-lg shadow-sm">
-                    <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">Integrity Status</span>
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span className="text-sm font-extrabold text-emerald-600 font-mono">SECURE</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Search & Advanced Filters */}
-                <div className="bg-white border border-slate-200 p-5 rounded-lg shadow-sm space-y-4">
-                  <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-                    <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
-                      <Filter className="h-4.5 w-4.5 text-slate-450" />
-                      <span>Security Log Query Filters</span>
-                    </h3>
-                    {/* Clear Filters Button */}
-                    {(securitySearch || securityEventType || securityRole || securityUsername || securityStartDate || securityEndDate) && (
+                    <div className="flex flex-col sm:flex-row sm:justify-end gap-3 md:gap-4 items-stretch sm:items-center">
                       <button
-                        onClick={() => {
-                          setSecuritySearch('');
-                          setSecurityEventType('');
-                          setSecurityRole('');
-                          setSecurityUsername('');
-                          setSecurityStartDate('');
-                          setSecurityEndDate('');
-                        }}
-                        className="text-xs font-bold text-amber-600 hover:text-amber-750 transition-colors flex items-center gap-1"
+                        onClick={exportToCsv}
+                        className="flex items-center justify-center gap-2 rounded-2xl border border-slate-600 bg-slate-900/90 px-4 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-800 transition"
                       >
-                        <RefreshCw className="h-3.5 w-3.5 animate-spin-once" />
-                        <span>Reset All Filters</span>
+                        <Download className="h-4 w-4 text-amber-400" />
+                        Export CSV
                       </button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
-                    {/* Search */}
-                    <div className="lg:col-span-2 relative">
-                      <input
-                        type="text"
-                        placeholder="Search action, IP, username..."
-                        className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded text-xs focus:outline-none focus:border-amber-400 font-medium"
-                        value={securitySearch}
-                        onChange={(e) => setSecuritySearch(e.target.value)}
-                      />
-                      <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
-                    </div>
-
-                    {/* Username Filter */}
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Username"
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-xs focus:outline-none focus:border-amber-400 font-medium"
-                        value={securityUsername}
-                        onChange={(e) => setSecurityUsername(e.target.value)}
-                      />
-                    </div>
-
-                    {/* Event Type Filter */}
-                    <div>
-                      <select
-                        className="w-full px-2 py-2 bg-white border border-slate-200 rounded text-xs focus:outline-none focus:border-amber-400 font-semibold text-slate-700"
-                        value={securityEventType}
-                        onChange={(e) => setSecurityEventType(e.target.value)}
+                      <button
+                        onClick={exportToJson}
+                        className="flex items-center justify-center gap-2 rounded-2xl border border-slate-600 bg-slate-900/80 px-4 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-800 transition"
                       >
-                        <option value="">All Event Types</option>
-                        <optgroup label="Authentication">
-                          <option value="login_success">Login Success</option>
-                          <option value="login_failure">Login Failure</option>
-                          <option value="logout">User Logout</option>
-                          <option value="sql_injection_attempt">SQL Injection Attempt</option>
-                          <option value="unauthorized_access">Unauthorized Access</option>
-                        </optgroup>
-                        <optgroup label="User Management">
-                          <option value="user_creation">User Created</option>
-                          <option value="user_deletion">User Deleted</option>
-                          <option value="user_role_changed">Role Changed</option>
-                        </optgroup>
-                        <optgroup label="Product Inventory">
-                          <option value="product_creation">Product Created</option>
-                          <option value="product_update">Product Updated</option>
-                          <option value="product_deletion">Product Deleted</option>
-                          <option value="price_changed">Price Changed</option>
-                          <option value="stock_changed">Stock Changed</option>
-                        </optgroup>
-                        <optgroup label="Orders / Checkout">
-                          <option value="order_created">Order Placed</option>
-                          <option value="order_cancelled">Order Cancelled</option>
-                          <option value="order_status_changed">Order Status Changed</option>
-                        </optgroup>
-                      </select>
-                    </div>
-
-                    {/* Role Filter */}
-                    <div>
-                      <select
-                        className="w-full px-2 py-2 bg-white border border-slate-200 rounded text-xs focus:outline-none focus:border-amber-400 font-semibold text-slate-700"
-                        value={securityRole}
-                        onChange={(e) => setSecurityRole(e.target.value)}
-                      >
-                        <option value="">All Roles</option>
-                        <option value="admin">Admin</option>
-                        <option value="user">User</option>
-                        <option value="anonymous">Anonymous</option>
-                      </select>
-                    </div>
-
-                    {/* Start Date */}
-                    <div className="flex items-center gap-1.5 border border-slate-200 rounded bg-slate-50 px-2 py-1">
-                      <span className="text-[9px] uppercase text-slate-400 font-bold block whitespace-nowrap">From:</span>
-                      <input
-                        type="date"
-                        className="bg-transparent text-xs w-full text-slate-705 focus:outline-none font-medium"
-                        value={securityStartDate}
-                        onChange={(e) => setSecurityStartDate(e.target.value)}
-                      />
-                    </div>
-
-                    {/* End Date */}
-                    <div className="flex items-center gap-1.5 border border-slate-200 rounded bg-slate-50 px-2 py-1">
-                      <span className="text-[9px] uppercase text-slate-400 font-bold block whitespace-nowrap">To:</span>
-                      <input
-                        type="date"
-                        className="bg-transparent text-xs w-full text-slate-705 focus:outline-none font-medium"
-                        value={securityEndDate}
-                        onChange={(e) => setSecurityEndDate(e.target.value)}
-                      />
+                        <Download className="h-4 w-4 text-amber-400" />
+                        Export JSON
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Logs Table Area */}
-                {securityLoading ? (
-                  <div className="bg-white border border-slate-200 rounded-lg p-12 text-center shadow-sm flex flex-col items-center justify-center gap-3">
-                    <RefreshCw className="h-8 w-8 text-amber-500 animate-spin" />
-                    <span className="text-sm font-semibold text-slate-505">Querying database logs...</span>
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                  <div className="bg-slate-950 border border-slate-800 p-5 rounded-3xl shadow-xl">
+                    <div className="flex items-center justify-between mb-3 text-slate-400 text-[11px] uppercase tracking-[0.25em]">Audit Records</div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-4xl font-extrabold text-white">{securityCounts.total}</div>
+                        <div className="text-slate-400 text-sm mt-1">Total entries processed</div>
+                      </div>
+                      <Database className="h-9 w-9 text-sky-400" />
+                    </div>
                   </div>
-                ) : securityLogs.length === 0 ? (
-                  <div className="bg-white border border-slate-200 rounded-lg p-12 text-center shadow-sm flex flex-col items-center justify-center gap-2">
-                    <ShieldAlert className="h-10 w-10 text-slate-350" />
-                    <span className="text-sm font-bold text-slate-700">No security events found</span>
-                    <span className="text-xs text-slate-400 max-w-sm">No DB entries matched your current search parameters. Try adjusting filters or reset.</span>
+                  <div className="bg-slate-950 border border-slate-800 p-5 rounded-3xl shadow-xl">
+                    <div className="flex items-center justify-between mb-3 text-slate-400 text-[11px] uppercase tracking-[0.25em]">High Risk Alerts</div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-4xl font-extrabold text-white">{securityCounts.highRisk}</div>
+                        <div className="text-slate-400 text-sm mt-1">Critical threat events</div>
+                      </div>
+                      <Key className="h-9 w-9 text-rose-400" />
+                    </div>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto border border-slate-200 rounded-lg bg-white shadow-sm">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-semibold">
-                        <tr>
-                          <th className="p-3 w-8"></th>
-                          <th className="p-3">Timestamp</th>
-                          <th className="p-3">Event Type</th>
-                          <th className="p-3">Username</th>
-                          <th className="p-3">Role</th>
-                          <th className="p-3">IP Address</th>
-                          <th className="p-3">Action</th>
-                          <th className="p-3">Details</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200">
-                        {securityLogs.map((log) => {
-                          const isExpanded = expandedLogId === log.id;
-                          
-                          // Color code mapping for event type badges
-                          let badgeStyle = 'bg-slate-100 text-slate-700 border-slate-200';
-                          if (log.event_type === 'login_success' || log.event_type === 'logout') {
-                            badgeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                          } else if (log.event_type === 'sql_injection_attempt') {
-                            badgeStyle = 'bg-red-100 text-red-800 border-red-300 font-extrabold animate-pulse';
-                          } else if (log.event_type === 'login_failure' || log.event_type === 'unauthorized_access') {
-                            badgeStyle = 'bg-rose-50 text-rose-700 border-rose-200/80 font-extrabold animate-pulse';
-                          } else if (log.event_type.startsWith('user_')) {
-                            badgeStyle = 'bg-blue-50 text-blue-700 border-blue-200';
-                          } else if (log.event_type.startsWith('product_') || log.event_type === 'price_changed' || log.event_type === 'stock_changed') {
-                            badgeStyle = 'bg-purple-50 text-purple-700 border-purple-200';
-                          } else if (log.event_type.startsWith('order_') || log.event_type === 'checkout') {
-                            badgeStyle = 'bg-amber-50 text-amber-700 border-amber-200';
-                          }
+                  <div className="bg-slate-950 border border-slate-800 p-5 rounded-3xl shadow-xl">
+                    <div className="flex items-center justify-between mb-3 text-slate-400 text-[11px] uppercase tracking-[0.25em]">Admin Operations</div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-4xl font-extrabold text-white">{securityCounts.adminOperations}</div>
+                        <div className="text-slate-400 text-sm mt-1">Audited admin actions</div>
+                      </div>
+                      <Users className="h-9 w-9 text-amber-400" />
+                    </div>
+                  </div>
+                  <div className="bg-slate-950 border border-slate-800 p-5 rounded-3xl shadow-xl">
+                    <div className="flex items-center justify-between mb-3 text-slate-400 text-[11px] uppercase tracking-[0.25em]">Integrity Status</div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-4xl font-extrabold text-emerald-400">Stable</div>
+                        <div className="text-slate-400 text-sm mt-1">Alert volume within threshold</div>
+                      </div>
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-300 text-base font-bold">OK</span>
+                    </div>
+                  </div>
+                </div>
 
-                          return (
-                            <React.Fragment key={log.id}>
-                              <tr 
-                                className={`hover:bg-slate-50 transition-colors cursor-pointer ${isExpanded ? 'bg-slate-50/70 font-semibold' : ''}`}
-                                onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
-                              >
-                                <td className="p-3 text-center">
-                                  {isExpanded ? (
-                                    <ChevronUp className="h-4 w-4 text-slate-400" />
-                                  ) : (
-                                    <ChevronDown className="h-4 w-4 text-slate-400" />
-                                  )}
-                                </td>
-                                <td className="p-3 font-mono text-slate-500 whitespace-nowrap">
-                                  {new Date(log.timestamp).toLocaleString(undefined, {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    second: '2-digit'
-                                  })}
-                                </td>
-                                <td className="p-3">
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${badgeStyle}`}>
-                                    {log.event_type.replace(/_/g, ' ')}
-                                  </span>
-                                </td>
-                                <td className="p-3 font-bold text-slate-800 font-mono">{log.username}</td>
-                                <td className="p-3">
-                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                                    log.role === 'admin' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
-                                  }`}>
-                                    {log.role}
-                                  </span>
-                                </td>
-                                <td className="p-3 font-mono text-slate-500">{log.ip_address}</td>
-                                <td className="p-3 text-slate-700 break-words max-w-[280px]" title={log.action}>
-                                  {log.action}
-                                </td>
-                                <td className="p-3 text-slate-500 max-w-[260px]">
-                                  <code className="block bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[10px] font-mono truncate" title={log.details || '{}'}>
-                                    {log.details || '{}'}
-                                  </code>
+                <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-4">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-slate-900 font-bold text-base">Threat Activity</h3>
+                        <p className="text-slate-500 text-sm">Recent attack pattern summary</p>
+                      </div>
+                      <span className="text-[11px] uppercase tracking-[0.25em] text-slate-400">Live</span>
+                    </div>
+                    <div className="space-y-4">
+                      {threatActivityData.map(item => (
+                        <div key={item.label} className="flex items-center gap-4">
+                          <div className="min-w-[90px] text-slate-500 text-sm font-semibold">{item.label}</div>
+                          <div className="flex-1 h-3 rounded-full bg-slate-100 overflow-hidden">
+                            <div className={`${item.bgColor} h-full rounded-full ${widthClassFromPercent((item.count / maxThreatCount) * 100)}`} />
+                          </div>
+                          <div className="text-slate-900 font-semibold text-sm">{item.count}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-slate-900 font-bold text-base">Login Success vs Failure</h3>
+                        <p className="text-slate-500 text-sm">Authentication trend snapshot</p>
+                      </div>
+                      <span className="text-[11px] uppercase tracking-[0.25em] text-slate-400">Now</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {loginActivityData.map(item => (
+                        <div key={item.label} className="rounded-3xl border border-slate-200 p-4 bg-slate-50">
+                          <div className="text-slate-500 text-[10px] uppercase tracking-[0.25em] mb-2">{item.label}</div>
+                          <div className="text-3xl font-extrabold text-slate-900">{item.value}</div>
+                          <div className="h-2 mt-3 rounded-full bg-slate-200 overflow-hidden">
+                            <div className={`${item.color} h-full rounded-full ${loginFillClass(item.value, securityCounts.loginSuccess + securityCounts.loginFailure)}`} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-[0.9fr_0.7fr] gap-4">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-slate-900 font-bold text-base">Event Timeline</h3>
+                        <p className="text-slate-500 text-sm">Sorted by latest security audit activity</p>
+                      </div>
+                      <button
+                        onClick={fetchSecurityLogs}
+                        className="text-slate-600 text-xs font-semibold hover:text-slate-900"
+                      >Refresh</button>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead className="bg-slate-100 text-slate-500 uppercase text-[11px] tracking-[0.15em] border-b border-slate-200">
+                          <tr>
+                            <th className="p-3 w-[90px]">Timestamp</th>
+                            <th className="p-3 w-[120px]">Event Type</th>
+                            <th className="p-3 w-[110px]">Username</th>
+                            <th className="p-3 w-[90px]">Role</th>
+                            <th className="p-3">Activity</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {securityLogs.slice(0, 6).map(log => (
+                            <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="p-3 font-mono text-slate-500 whitespace-nowrap">{new Date(log.timestamp).toLocaleTimeString()}</td>
+                              <td className="p-3">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getEventTypeStyle(log.event_type)}`}>
+                                  {log.event_type.replace(/_/g, ' ')}
+                                </span>
+                              </td>
+                              <td className="p-3 font-semibold text-slate-800">{log.username}</td>
+                              <td className="p-3 uppercase text-[11px] tracking-[0.12em] text-slate-500">{log.role}</td>
+                              <td className="p-3 text-slate-600 truncate" title={log.action}>{log.action}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-slate-900 font-bold text-base">Recent High Risk Events</h3>
+                        <p className="text-slate-500 text-sm">Top incidents requiring analyst review</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {securityCounts.recentHighRisk.length === 0 ? (
+                        <div className="text-slate-500 text-sm">No recent high risk events found.</div>
+                      ) : securityCounts.recentHighRisk.map(log => (
+                        <div key={log.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-[11px] uppercase tracking-[0.25em] text-slate-400">{new Date(log.timestamp).toLocaleString()}</div>
+                              <div className="text-slate-900 font-semibold mt-1">{log.event_type.replace(/_/g, ' ')}</div>
+                              <div className="text-slate-500 text-sm mt-1">{log.username} · {log.role}</div>
+                            </div>
+                            <span className="inline-flex rounded-full bg-rose-100 text-rose-700 px-2 py-1 text-[11px] font-semibold">High</span>
+                          </div>
+                          <p className="text-slate-500 text-sm mt-3 truncate" title={log.action || log.details}>{log.action || log.details}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Table section */}
+                <div className="overflow-x-auto border border-slate-200 rounded-3xl bg-white shadow-sm">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-950 text-slate-200 uppercase text-[10px] tracking-[0.18em] sticky top-0">
+                      <tr>
+                        <th className="p-3 w-8"></th>
+                        <th className="p-3 w-[180px]">Timestamp</th>
+                        <th className="p-3 w-[160px]">Event Type</th>
+                        <th className="p-3 w-[140px]">Username</th>
+                        <th className="p-3 w-[110px]">Role</th>
+                        <th className="p-3 w-[120px]">IP Address</th>
+                        <th className="p-3">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {securityLogs.map((log) => {
+                        const isExpanded = expandedLogId === log.id;
+                        const severity = getSeverityForEvent(log.event_type);
+                        return (
+                          <React.Fragment key={log.id}>
+                            <tr
+                              className={`hover:bg-slate-50 transition-colors cursor-pointer ${isExpanded ? 'bg-slate-100' : ''}`}
+                              onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                            >
+                              <td className="p-3 text-center">
+                                {isExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+                              </td>
+                              <td className="p-3 font-mono text-slate-500 whitespace-nowrap">{new Date(log.timestamp).toLocaleString()}</td>
+                              <td className="p-3">
+                                <span className={`px-2 py-1 rounded-full text-[10px] font-semibold border ${getEventTypeStyle(log.event_type)}`}>
+                                  {log.event_type.replace(/_/g, ' ')}
+                                </span>
+                              </td>
+                              <td className="p-3 font-semibold text-slate-900">{log.username || 'anonymous'}</td>
+                              <td className="p-3 uppercase text-[11px] tracking-[0.1em] text-slate-500">{log.role || 'N/A'}</td>
+                              <td className="p-3 font-mono text-slate-500">{log.ip_address}</td>
+                              <td className="p-3 text-slate-700 max-w-[320px]" title={log.action}>
+                                <div className="truncate max-w-[320px]">{log.action}</div>
+                              </td>
+                            </tr>
+                            {isExpanded && (
+                              <tr className="bg-slate-50/80">
+                                <td colSpan={7} className="p-4 border-l-4 border-sky-400">
+                                  <div className="flex flex-col gap-2 text-[11px] text-slate-600">
+                                    <div className="flex flex-wrap gap-3">
+                                      <span className="rounded-full bg-slate-200 px-2 py-1">Severity: {severity}</span>
+                                      <span className="rounded-full bg-slate-200 px-2 py-1">Event ID: #{log.id}</span>
+                                      <span className="rounded-full bg-slate-200 px-2 py-1">User Role: {log.role}</span>
+                                    </div>
+                                    <div className="bg-slate-950 text-slate-100 p-3 rounded-2xl font-mono overflow-x-auto">
+                                      <pre className="whitespace-pre-wrap">
+{(() => {
+  try {
+    const parsed = JSON.parse(log.details || '{}');
+    return JSON.stringify(parsed, null, 2);
+  } catch (e) {
+    return log.details || '{}';
+  }
+})()}
+                                      </pre>
+                                    </div>
+                                  </div>
                                 </td>
                               </tr>
-                              
-                              {/* Expanded log details container */}
-                              {isExpanded && (
-                                <tr className="bg-slate-50/30">
-                                  <td colSpan={8} className="p-4 border-l-4 border-amber-400">
-                                    <div className="space-y-3">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-[10px] uppercase text-slate-400 font-bold flex items-center gap-1">
-                                          <FileText className="h-3.5 w-3.5" />
-                                          <span>Event Metadata Context</span>
-                                        </span>
-                                        <span className="text-[10px] text-slate-400 font-mono">Log DB Record ID: #{log.id}</span>
-                                      </div>
-                                      <div className="bg-slate-900 text-emerald-400 p-4 rounded-lg font-mono text-xs overflow-x-auto max-h-60 shadow-inner">
-                                        <pre className="whitespace-pre-wrap leading-relaxed">
-                                          {(() => {
-                                            try {
-                                              const parsed = JSON.parse(log.details || '{}');
-                                              return JSON.stringify(parsed, null, 2);
-                                            } catch (e) {
-                                              return log.details || '{}';
-                                            }
-                                          })()}
-                                        </pre>
-                                      </div>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
@@ -1214,7 +1237,10 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 overflow-y-auto animate-fade-in">
           <div className="bg-white border border-slate-300 rounded-lg w-full max-w-2xl overflow-hidden shadow-2xl relative text-slate-800 my-8">
             <button
+              type="button"
               onClick={() => { setShowProductModal(false); setEditingProduct(null); }}
+              aria-label="Close product modal"
+              title="Close product modal"
               className="absolute top-3 right-3 text-slate-400 hover:text-slate-700 cursor-pointer p-1 rounded-full hover:bg-slate-105 transition-colors"
             >
               <X className="h-5 w-5" />
@@ -1245,6 +1271,7 @@ export default function AdminDashboard() {
                 <div>
                   <label className="block text-slate-500 font-bold mb-1">Category *</label>
                   <select
+                    aria-label="Choose product category"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-slate-800 focus:border-amber-400 focus:outline-none font-medium"
                     value={productForm.category}
                     onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
@@ -1296,9 +1323,11 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-slate-500 font-bold mb-1">Product Image Upload (Max 5MB) *</label>
+                    <label htmlFor="product-image-upload" className="block text-slate-500 font-bold mb-1">Product Image Upload (Max 5MB) *</label>
                     <input
+                      id="product-image-upload"
                       type="file"
+                      title="Upload product image file"
                       accept="image/*"
                       onChange={handleFileChange}
                       className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-bold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer"
@@ -1379,6 +1408,7 @@ export default function AdminDashboard() {
                 <div>
                   <label className="block text-slate-500 font-bold mb-1">Stock Status</label>
                   <select
+                    aria-label="Choose stock status"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-slate-800 focus:border-amber-400 focus:outline-none font-medium"
                     value={productForm.stock_status}
                     onChange={(e) => setProductForm({ ...productForm, stock_status: e.target.value })}
@@ -1394,6 +1424,7 @@ export default function AdminDashboard() {
                 <div>
                   <label className="block text-slate-500 font-bold mb-1">Product Status</label>
                   <select
+                    aria-label="Choose product visibility status"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-slate-800 focus:border-amber-400 focus:outline-none font-medium"
                     value={productForm.status}
                     onChange={(e) => setProductForm({ ...productForm, status: e.target.value })}
@@ -1495,7 +1526,10 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="bg-white border border-slate-350 rounded-lg w-full max-w-md overflow-hidden shadow-2xl relative text-slate-800">
             <button
+              type="button"
               onClick={() => setShowUserModal(false)}
+              aria-label="Close add user modal"
+              title="Close add user modal"
               className="absolute top-3 right-3 text-slate-400 hover:text-slate-705 cursor-pointer"
             >
               <X className="h-5 w-5" />
@@ -1547,6 +1581,7 @@ export default function AdminDashboard() {
               <div>
                 <label className="block text-xs text-slate-500 uppercase font-semibold mb-1">Access Role</label>
                 <select
+                  aria-label="Select account role"
                   className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded text-slate-805"
                   value={userForm.role}
                   onChange={(e) => setUserForm({ ...userForm, role: e.target.value as UserRole })}

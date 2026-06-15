@@ -5,13 +5,38 @@ import { dbQuery } from '../config/db';
 import { logSecurityEvent } from '../utils/logger';
 import { RequestWithId } from '../middleware/requestLogger';
 import { detectSqlInjection } from '../utils/sqlInjectionDetector';
+// Intentionally not using SQL injection detector here — this controller
+// will demonstrate a vulnerable authentication flow for study purposes.
 
 const JWT_SECRET = process.env.JWT_SECRET || 'shopzone_super_secure_jwt_secret_token_key_2026!';
 
 export const register = async (req: Request, res: Response) => {
-  const { username, password } = req.body;
+  const { username, password, email } = req.body;
   const ipAddress = req.ip || req.socket.remoteAddress;
   const userAgent = req.headers['user-agent'];
+
+  // Detect SQL injection
+  const sqlInjectionMatches = detectSqlInjection({ username, password, email });
+  if (sqlInjectionMatches.length > 0) {
+    const payload = sqlInjectionMatches
+      .map(m => m.field === 'username' ? String(username) : (m.field === 'password' ? String(password) : String(email)))
+      .join(' | ');
+
+    logSecurityEvent('sql_injection_attempt', 'Possible SQL Injection detected', {
+      actor: { id: null, username: 'anonymous', role: 'anonymous' },
+      ipAddress,
+      userAgent,
+      severity: 'high',
+      endpoint: req.originalUrl,
+      usernameAttempt: String(username || email || 'anonymous'),
+      payload,
+      details: {
+        matches: sqlInjectionMatches,
+        inspectedFields: ['username', 'email', 'password']
+      }
+    });
+    return res.status(400).json({ error: 'Possible SQL Injection detected' });
+  }
 
   if (!username || !password) {
     return res.status(400).json({ error: 'All fields (username, password) are required' });
@@ -70,58 +95,46 @@ export const login = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Username and password are required' });
   }
 
-  const sqlInjectionMatches = detectSqlInjection({ username, password });
-  if (sqlInjectionMatches.length > 0) {
-    logSecurityEvent('sql_injection_attempt', `Suspicious SQL injection pattern detected during login for username attempt: ${username}`, {
-      actor: { id: null, username: 'anonymous', role: 'anonymous' },
-      ipAddress,
-      userAgent,
-      severity: 'high',
-      endpoint: req.originalUrl,
-      requestId,
-      usernameAttempt: String(username),
-      details: {
-        inspectedFields: ['username', 'password'],
-        matches: sqlInjectionMatches
-      }
-    });
-
-    return res.status(400).json({ error: 'Suspicious input detected' });
-  }
-
   try {
-    // Fetch user
-    const users = await dbQuery('SELECT * FROM users WHERE username = ?', [username]);
+    // ⚠️ VULNERABLE: SQL via string concatenation for STUDY PURPOSES ONLY
+    // This demonstrates how unparameterized queries allow SQL injection attacks.
+    // In production, ALWAYS use parameterized queries (see secure example below).
+    const normalizedUsername = username.replace(/--$/, '-- ');
+    const sql = `SELECT * FROM users WHERE username = '${normalizedUsername}'`;
+    const users = await dbQuery(sql);
+
     if (users.length === 0) {
-      logSecurityEvent('login_failure', `Failed login attempt for non-existent username: ${username}`, {
-        actor: { id: null, username, role: 'anonymous' },
+      logSecurityEvent('login_failure', `Failed login attempt (no matching row) for username expression: ${username}`, {
+        actor: { id: null, username: username || 'anonymous', role: 'anonymous' },
         ipAddress,
         userAgent,
-        details: { reason: 'User not found' }
+        details: { reason: 'User not found or credentials mismatch (vulnerable flow)' }
       });
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
     const user = users[0];
 
-    // Verify password
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) {
-      logSecurityEvent('login_failure', `Failed login attempt (invalid password) for user: ${username}`, {
-        actor: { id: user.id, username: user.username, role: user.role },
-        ipAddress,
-        userAgent,
-        details: { reason: 'Invalid password' }
-      });
-      return res.status(401).json({ error: 'Invalid username or password' });
+    if (users.length === 1) {
+      const isValid = await bcrypt.compare(password, user.password);
+      if (!isValid) {
+        logSecurityEvent('login_failure', `Failed login attempt (invalid password) for user: ${username}`, {
+          actor: { id: user.id, username: user.username, role: user.role },
+          ipAddress,
+          userAgent,
+          details: { reason: 'Invalid password' }
+        });
+        return res.status(401).json({ error: 'Invalid username or password' });
+      }
     }
 
-    // Generate token
+    // If the query returned multiple rows, SQL injection likely manipulated the WHERE clause.
+    // Bypass password verification in that case to demonstrate the vulnerability.
     const token = jwt.sign({ id: user.id, username: user.username, email: user.email, role: user.role }, JWT_SECRET, {
       expiresIn: '24h'
     });
 
-    logSecurityEvent('login_success', `User logged in: ${user.username}`, {
+    logSecurityEvent('login_success', `User logged in (vulnerable flow): ${user.username}`, {
       actor: { id: user.id, username: user.username, role: user.role },
       ipAddress,
       userAgent

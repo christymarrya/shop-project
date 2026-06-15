@@ -1,5 +1,5 @@
 export interface SqlInjectionMatch {
-  field: 'username' | 'password';
+  field: 'username' | 'password' | 'email';
   pattern: string;
   description: string;
 }
@@ -23,11 +23,13 @@ const SQL_INJECTION_PATTERNS: DetectionPattern[] = [
 export const detectSqlInjection = (fields: {
   username?: unknown;
   password?: unknown;
+  email?: unknown;
 }): SqlInjectionMatch[] => {
   const matches: SqlInjectionMatch[] = [];
-  const candidates: Array<{ field: 'username' | 'password'; value: unknown }> = [
+  const candidates: Array<{ field: 'username' | 'password' | 'email'; value: unknown }> = [
     { field: 'username', value: fields.username },
-    { field: 'password', value: fields.password }
+    { field: 'password', value: fields.password },
+    { field: 'email', value: fields.email }
   ];
 
   for (const candidate of candidates) {

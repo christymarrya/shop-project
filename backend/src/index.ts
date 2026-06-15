@@ -10,6 +10,7 @@ import adminRoutes from './routes/admin.routes';
 import wishlistRoutes from './routes/wishlist.routes';
 import securityLabRoutes from './routes/securityLab.routes';
 import { requestLogger } from './middleware/requestLogger';
+import { securityScanner } from './middleware/securityScanner';
 import { logger } from './utils/logger';
 
 // Load environment variables
@@ -27,6 +28,9 @@ app.use(cors({
 
 // Body parser
 app.use(express.json());
+
+// Apply global input security scanner
+app.use(securityScanner);
 
 // Apply structured request logger middleware
 app.use(requestLogger);

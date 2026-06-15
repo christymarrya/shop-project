@@ -60,6 +60,7 @@ export interface SecurityEventData {
   endpoint?: string;
   requestId?: string;
   usernameAttempt?: string;
+  payload?: string;
 }
 
 /**
@@ -86,25 +87,46 @@ export const logSecurityEvent = (
     | 'order_status_changed'
     | 'order_cancelled'
     | 'admin_order_update'
-    | 'sql_injection_attempt',
+    | 'sql_injection_attempt'
+    | 'xss_attempt',
   message: string,
   data: SecurityEventData
 ) => {
   const actor = data.actor || { id: null, username: 'anonymous', role: 'anonymous' };
 
+  // Determine severity based on requirement 4 mapping
+  let severity = 'low';
+  if (['login_success', 'user_creation', 'checkout'].includes(eventType)) {
+    severity = 'low';
+  } else if (['login_failure', 'unauthorized_access'].includes(eventType)) {
+    severity = 'medium';
+  } else if (['sql_injection_attempt', 'xss_attempt', 'product_deletion', 'user_deletion'].includes(eventType)) {
+    severity = 'high';
+  } else if (data.severity) {
+    severity = data.severity;
+  }
+
+  const usernameVal = data.usernameAttempt || actor.username || "";
+  const userIdVal = actor.id !== null && actor.id !== undefined ? String(actor.id) : "";
+
   // 1. Log via Winston
   logger.warn(message, {
-    event_category: 'security_audit',
     event_type: eventType,
-    severity: data.severity,
+    event_category: 'security_audit',
+    severity,
     timestamp: new Date().toISOString(),
+    username: usernameVal,
+    user_id: userIdVal,
+    ip_address: data.ipAddress || 'unknown',
+    user_agent: data.userAgent || 'unknown',
+
+    // Keep other existing properties for backward compatibility
     actor,
     username_attempt: data.usernameAttempt,
-    ip_address: data.ipAddress || 'unknown',
     source_ip: data.ipAddress || 'unknown',
-    user_agent: data.userAgent || 'unknown',
     endpoint: data.endpoint,
     request_id: data.requestId,
+    payload: data.payload,
     details: data.details || {}
   });
 
@@ -112,19 +134,22 @@ export const logSecurityEvent = (
   dbQuery(
     'INSERT INTO audit_logs (username, role, event_type, action, ip_address, details) VALUES (?, ?, ?, ?, ?, ?)',
     [
-      data.usernameAttempt || actor.username || 'anonymous',
+      usernameVal || 'anonymous',
       actor.role || 'anonymous',
       eventType,
       message,
       data.ipAddress || 'unknown',
       JSON.stringify({
         ...(data.details || {}),
-        severity: data.severity,
+        severity,
         endpoint: data.endpoint,
         request_id: data.requestId,
         username_attempt: data.usernameAttempt,
         source_ip: data.ipAddress || 'unknown',
-        user_agent: data.userAgent || 'unknown'
+        user_agent: data.userAgent || 'unknown',
+        payload: data.payload,
+        username: usernameVal,
+        user_id: userIdVal
       })
     ]
   ).catch((err) => {

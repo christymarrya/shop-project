@@ -4,7 +4,7 @@ import { logSecurityEvent } from '../utils/logger';
 import { detectSqlInjection } from '../utils/sqlInjectionDetector';
 
 export const vulnerableLogin = async (req: Request, res: Response) => {
-  const { username, password } = req.body;
+  const { username, password, email } = req.body;
   const ipAddress = req.ip || req.socket.remoteAddress;
   const userAgent = req.headers['user-agent'];
 
@@ -13,19 +13,24 @@ export const vulnerableLogin = async (req: Request, res: Response) => {
   }
 
   // 1. Log attempt if SQL injection pattern is detected
-  const sqlInjectionMatches = detectSqlInjection({ username, password });
+  const sqlInjectionMatches = detectSqlInjection({ username, password, email });
   if (sqlInjectionMatches.length > 0) {
-    logSecurityEvent('sql_injection_attempt', `SQL injection attempt detected in Vulnerable demonstration endpoint`, {
+    const payload = sqlInjectionMatches
+      .map(m => m.field === 'username' ? String(username) : (m.field === 'password' ? String(password) : String(email)))
+      .join(' | ');
+
+    logSecurityEvent('sql_injection_attempt', 'Possible SQL Injection detected', {
       actor: { id: null, username: 'anonymous', role: 'anonymous' },
       ipAddress,
       userAgent,
       severity: 'high',
       endpoint: req.originalUrl,
-      usernameAttempt: String(username),
+      usernameAttempt: String(username || email || 'anonymous'),
+      payload,
       details: {
         mode: 'vulnerable_lab',
         matches: sqlInjectionMatches,
-        inspectedFields: ['username', 'password']
+        inspectedFields: ['username', 'email', 'password']
       }
     });
   }
@@ -61,7 +66,7 @@ export const vulnerableLogin = async (req: Request, res: Response) => {
 };
 
 export const secureLogin = async (req: Request, res: Response) => {
-  const { username, password } = req.body;
+  const { username, password, email } = req.body;
   const ipAddress = req.ip || req.socket.remoteAddress;
   const userAgent = req.headers['user-agent'];
 
@@ -70,19 +75,24 @@ export const secureLogin = async (req: Request, res: Response) => {
   }
 
   // 1. Log attempt if SQL injection pattern is detected
-  const sqlInjectionMatches = detectSqlInjection({ username, password });
+  const sqlInjectionMatches = detectSqlInjection({ username, password, email });
   if (sqlInjectionMatches.length > 0) {
-    logSecurityEvent('sql_injection_attempt', `SQL injection attempt blocked in Secure demonstration endpoint`, {
+    const payload = sqlInjectionMatches
+      .map(m => m.field === 'username' ? String(username) : (m.field === 'password' ? String(password) : String(email)))
+      .join(' | ');
+
+    logSecurityEvent('sql_injection_attempt', 'Possible SQL Injection detected', {
       actor: { id: null, username: 'anonymous', role: 'anonymous' },
       ipAddress,
       userAgent,
       severity: 'high',
       endpoint: req.originalUrl,
-      usernameAttempt: String(username),
+      usernameAttempt: String(username || email || 'anonymous'),
+      payload,
       details: {
         mode: 'secure_lab',
         matches: sqlInjectionMatches,
-        inspectedFields: ['username', 'password']
+        inspectedFields: ['username', 'email', 'password']
       }
     });
   }
