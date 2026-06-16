@@ -15,6 +15,38 @@ const jsonFormat = winston.format.combine(
   winston.format.json()
 );
 
+// Log format for Splunk: key-value pairs in a standard .log file
+const splunkKeyValueFormat = winston.format.combine(
+  winston.format.timestamp(),
+  winston.format.printf(({ timestamp, level, message, ...meta }) => {
+    const formatValue = (val: any): string => {
+      if (val === null || val === undefined) return '""';
+      if (typeof val === 'object') {
+        return `"${JSON.stringify(val).replace(/"/g, '\\"')}"`;
+      }
+      return `"${String(val).replace(/"/g, '\\"')}"`;
+    };
+    
+    // Flatten nested objects like actor for easier Splunk querying
+    const flatMeta: Record<string, any> = {};
+    Object.entries(meta).forEach(([key, val]) => {
+      if (val && typeof val === 'object' && !Array.isArray(val)) {
+        Object.entries(val).forEach(([nestedKey, nestedVal]) => {
+          flatMeta[`${key}_${nestedKey}`] = nestedVal;
+        });
+      } else {
+        flatMeta[key] = val;
+      }
+    });
+
+    const metaPairs = Object.entries(flatMeta)
+      .map(([key, val]) => `${key}=${formatValue(val)}`)
+      .join(' ');
+
+    return `${timestamp} level="${level}" message="${message.replace(/"/g, '\\"')}" ${metaPairs}`;
+  })
+);
+
 // Console format: human-readable
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
@@ -34,15 +66,27 @@ export const logger = winston.createLogger({
     new winston.transports.Console({
       format: consoleFormat
     }),
-    // Application logs file transport
+    // Application logs file transport (JSON)
     new winston.transports.File({
       filename: path.join(logsDir, 'application.json.log'),
       level: 'info'
     }),
-    // Dedicated Security/Audit logs transport
+    // Dedicated Security/Audit logs transport (JSON)
     new winston.transports.File({
       filename: path.join(logsDir, 'security.json.log'),
-      level: 'warn' // Security events will be logged at 'warn' or higher to separate them
+      level: 'warn'
+    }),
+    // Application logs file transport (Splunk Key-Value text)
+    new winston.transports.File({
+      filename: path.join(logsDir, 'application.log'),
+      level: 'info',
+      format: splunkKeyValueFormat
+    }),
+    // Dedicated Security/Audit logs transport (Splunk Key-Value text)
+    new winston.transports.File({
+      filename: path.join(logsDir, 'security.log'),
+      level: 'warn',
+      format: splunkKeyValueFormat
     })
   ]
 });
