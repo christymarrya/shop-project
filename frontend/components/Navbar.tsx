@@ -50,7 +50,7 @@ export default function Navbar({ onSearch, cartCount = 0 }: NavbarProps) {
 
   return (
     <header className="bg-[#131921] text-white sticky top-0 z-50 shadow-md">
-      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16 gap-4">
+      <div className="w-full mx-auto px-4 md:px-8 flex items-center justify-between h-16 gap-4">
         
         {/* Logo Section */}
         <Link href="/" className="flex items-center gap-2 flex-shrink-0 group">

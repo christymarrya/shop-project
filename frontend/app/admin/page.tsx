@@ -466,7 +466,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-[#eaeded] text-slate-900 flex flex-col">
       <Navbar />
 
-      <main className="flex-grow max-w-7xl w-full mx-auto px-4 py-8">
+      <main className="flex-grow w-full mx-auto px-4 md:px-8 py-8">
         
         {/* Page Title & Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 bg-white p-5 border border-slate-200 rounded-lg shadow-sm">
