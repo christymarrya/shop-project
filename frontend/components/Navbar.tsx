@@ -75,7 +75,7 @@ export default function Navbar({ onSearch, cartCount = 0 }: NavbarProps) {
         </form>
 
         {/* Navigation Items */}
-        <nav className="flex items-center gap-6 text-sm font-medium h-full align-middle">
+        <nav className="flex items-center gap-3 lg:gap-6 text-sm font-medium h-full align-middle">
           {/* Home Link */}
           <Link href="/" className={`flex items-center gap-1 hover:text-[#febd69] transition-all py-1.5 border-b-2 ${pathname === '/' ? 'border-[#F59E0B] text-[#febd69]' : 'border-transparent'}`}>
             <span>Home</span>
@@ -84,7 +84,7 @@ export default function Navbar({ onSearch, cartCount = 0 }: NavbarProps) {
           {user ? (
             <>
               {/* Account info */}
-              <div className="flex flex-col text-left">
+              <div className="hidden xl:flex flex-col text-left">
                 <span className="text-xs text-[#febd69] font-bold">Welcome, {user.username}</span>
               </div>
 
@@ -92,20 +92,20 @@ export default function Navbar({ onSearch, cartCount = 0 }: NavbarProps) {
               {user.role === 'admin' && (
                 <Link href="/admin" className={`flex items-center gap-1 text-[#febd69] hover:text-amber-300 transition-all py-1.5 border-b-2 ${pathname === '/admin' ? 'border-[#F59E0B]' : 'border-transparent'}`}>
                   <User className="h-4 w-4" />
-                  <span>Admin Panel</span>
+                  <span>Admin<span className="hidden lg:inline"> Panel</span></span>
                 </Link>
               )}
 
               {/* Wishlist */}
               <Link href="/wishlist" className={`flex items-center gap-1 hover:text-[#febd69] transition-all py-1.5 border-b-2 ${pathname === '/wishlist' ? 'border-[#F59E0B] text-[#febd69]' : 'border-transparent'}`}>
                 <Heart className="h-4 w-4 text-rose-500 fill-rose-500" />
-                <span>Wishlist</span>
+                <span className="hidden lg:inline">Wishlist</span>
               </Link>
 
               {/* Order History */}
               <Link href="/orders" className={`flex items-center gap-1 hover:text-[#febd69] transition-all py-1.5 border-b-2 ${pathname === '/orders' ? 'border-[#F59E0B] text-[#febd69]' : 'border-transparent'}`}>
                 <ClipboardList className="h-4 w-4 text-slate-400" />
-                <span>My Orders</span>
+                <span className="hidden lg:inline">My Orders</span>
               </Link>
 
               {/* Shopping Cart */}
@@ -123,7 +123,7 @@ export default function Navbar({ onSearch, cartCount = 0 }: NavbarProps) {
                 className="flex items-center gap-1 hover:text-rose-400 transition-colors cursor-pointer bg-transparent border-0 p-0 text-slate-300"
               >
                 <LogOut className="h-4 w-4 text-slate-400" />
-                <span>Logout</span>
+                <span className="hidden lg:inline">Logout</span>
               </button>
             </>
           ) : (

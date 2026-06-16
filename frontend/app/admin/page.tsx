@@ -188,7 +188,6 @@ export default function AdminDashboard() {
     securityStartDate,
     securityEndDate,
   ]);
-
   const exportToCsv = () => {
     if (securityLogs.length === 0) {
       alert('No logs available to export.');
@@ -501,7 +500,7 @@ export default function AdminDashboard() {
         )}
 
         {/* Dashboard Tabs & Metrics */}
-        <div className="flex flex-col md:flex-row gap-8">
+        <div className="flex flex-col md:flex-row gap-8 w-full max-w-full">
           
           {/* Navigation Sidebar */}
           <aside className="w-full md:w-56 flex-shrink-0 space-y-1 bg-white border border-slate-200 rounded-lg p-3 shadow-sm h-fit">
@@ -673,7 +672,7 @@ export default function AdminDashboard() {
                   </button>
                 </div>
 
-                <div className="overflow-x-auto border border-slate-200 rounded-lg bg-white shadow-sm">
+                <div className="w-full overflow-x-auto border border-slate-200 rounded-lg bg-white shadow-sm">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-semibold">
                       <tr>
@@ -769,7 +768,7 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                <div className="overflow-x-auto border border-slate-200 rounded-lg bg-white shadow-sm">
+                <div className="w-full overflow-x-auto border border-slate-200 rounded-lg bg-white shadow-sm">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-semibold">
                       <tr>
@@ -868,7 +867,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="overflow-x-auto border border-slate-200 rounded-lg bg-white shadow-sm">
+                <div className="w-full overflow-x-auto border border-slate-200 rounded-lg bg-white shadow-sm">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-semibold">
                       <tr>
@@ -955,7 +954,7 @@ export default function AdminDashboard() {
             {activeTab === 'security' && (
               <div className="space-y-6">
                 {/* SOC-style dashboard header */}
-                <div className="bg-[#0f172a] text-white p-5 rounded-3xl border border-slate-700 shadow-[0_28px_60px_-38px_rgba(15,23,42,0.9)] overflow-hidden relative">
+                <div className="w-full bg-[#0f172a] text-white p-5 rounded-3xl border border-slate-700 shadow-[0_28px_60px_-38px_rgba(15,23,42,0.9)] overflow-hidden relative">
                   <div className="absolute inset-0 bg-gradient-to-r from-slate-900/20 via-transparent to-sky-500/10 pointer-events-none"></div>
                   <div className="relative grid grid-cols-1 xl:grid-cols-[1.3fr_0.9fr] gap-4 items-start">
                     <div className="space-y-2">
@@ -996,7 +995,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 w-full max-w-full">
                   <div className="bg-slate-950 border border-slate-800 p-5 rounded-3xl shadow-xl">
                     <div className="flex items-center justify-between mb-3 text-slate-400 text-[11px] uppercase tracking-[0.25em]">Audit Records</div>
                     <div className="flex items-center justify-between gap-3">
@@ -1039,7 +1038,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-4">
+                <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-4 w-full max-w-full">
                   <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                       <div>
@@ -1082,7 +1081,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-[0.9fr_0.7fr] gap-4">
+                <div className="grid grid-cols-1 xl:grid-cols-[0.9fr_0.7fr] gap-4 w-full max-w-full">
                   <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                       <div>
@@ -1094,7 +1093,7 @@ export default function AdminDashboard() {
                         className="text-slate-600 text-xs font-semibold hover:text-slate-900"
                       >Refresh</button>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="w-full overflow-x-auto">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead className="bg-slate-100 text-slate-500 uppercase text-[11px] tracking-[0.15em] border-b border-slate-200">
                           <tr>
@@ -1151,7 +1150,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Table section */}
-                <div className="overflow-x-auto border border-slate-200 rounded-3xl bg-white shadow-sm">
+                <div className="w-full overflow-x-auto border border-slate-200 rounded-3xl bg-white shadow-sm">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead className="bg-slate-950 text-slate-200 uppercase text-[10px] tracking-[0.18em] sticky top-0">
                       <tr>
@@ -1199,7 +1198,7 @@ export default function AdminDashboard() {
                                       <span className="rounded-full bg-slate-200 px-2 py-1">Event ID: #{log.id}</span>
                                       <span className="rounded-full bg-slate-200 px-2 py-1">User Role: {log.role}</span>
                                     </div>
-                                    <div className="bg-slate-950 text-slate-100 p-3 rounded-2xl font-mono overflow-x-auto">
+                                    <div className="w-full bg-slate-950 text-slate-100 p-3 rounded-2xl font-mono overflow-x-auto">
                                       <pre className="whitespace-pre-wrap">
 {(() => {
   try {
