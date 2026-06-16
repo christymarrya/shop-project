@@ -956,7 +956,7 @@ export default function AdminDashboard() {
                 {/* SOC-style dashboard header */}
                 <div className="w-full bg-[#0f172a] text-white p-5 rounded-3xl border border-slate-700 shadow-[0_28px_60px_-38px_rgba(15,23,42,0.9)] overflow-hidden relative">
                   <div className="absolute inset-0 bg-gradient-to-r from-slate-900/20 via-transparent to-sky-500/10 pointer-events-none"></div>
-                  <div className="relative grid grid-cols-1 xl:grid-cols-[1.3fr_0.9fr] gap-4 items-start">
+                  <div className="relative grid grid-cols-1 xl:grid-cols-[minmax(0,_1.3fr)_minmax(0,_0.9fr)] gap-4 items-start">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.3em] text-sky-300 font-semibold">
                         <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -995,7 +995,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 w-full max-w-full">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-full">
                   <div className="bg-slate-950 border border-slate-800 p-5 rounded-3xl shadow-xl">
                     <div className="flex items-center justify-between mb-3 text-slate-400 text-[11px] uppercase tracking-[0.25em]">Audit Records</div>
                     <div className="flex items-center justify-between gap-3">
@@ -1038,8 +1038,8 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-4 w-full max-w-full">
-                  <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,_1.1fr)_minmax(0,_0.9fr)] gap-4 w-full max-w-full">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm min-w-0">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <h3 className="text-slate-900 font-bold text-base">Threat Activity</h3>
@@ -1059,7 +1059,7 @@ export default function AdminDashboard() {
                       ))}
                     </div>
                   </div>
-                  <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm min-w-0">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <h3 className="text-slate-900 font-bold text-base">Login Success vs Failure</h3>
@@ -1081,8 +1081,8 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-[0.9fr_0.7fr] gap-4 w-full max-w-full">
-                  <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,_0.9fr)_minmax(0,_0.7fr)] gap-4 w-full max-w-full">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm min-w-0">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <h3 className="text-slate-900 font-bold text-base">Event Timeline</h3>
@@ -1115,14 +1115,16 @@ export default function AdminDashboard() {
                               </td>
                               <td className="p-3 font-semibold text-slate-800">{log.username}</td>
                               <td className="p-3 uppercase text-[11px] tracking-[0.12em] text-slate-500">{log.role}</td>
-                              <td className="p-3 text-slate-600 truncate" title={log.action}>{log.action}</td>
+                              <td className="p-3 text-slate-600 max-w-[180px] sm:max-w-[240px]" title={log.action}>
+                                <div className="truncate">{log.action}</div>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
                   </div>
-                  <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm min-w-0">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <h3 className="text-slate-900 font-bold text-base">Recent High Risk Events</h3>
@@ -1185,8 +1187,8 @@ export default function AdminDashboard() {
                               <td className="p-3 font-semibold text-slate-900">{log.username || 'anonymous'}</td>
                               <td className="p-3 uppercase text-[11px] tracking-[0.1em] text-slate-500">{log.role || 'N/A'}</td>
                               <td className="p-3 font-mono text-slate-500">{log.ip_address}</td>
-                              <td className="p-3 text-slate-700 max-w-[320px]" title={log.action}>
-                                <div className="truncate max-w-[320px]">{log.action}</div>
+                              <td className="p-3 text-slate-700 max-w-[180px] sm:max-w-[280px]" title={log.action}>
+                                <div className="truncate">{log.action}</div>
                               </td>
                             </tr>
                             {isExpanded && (
